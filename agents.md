@@ -8,6 +8,10 @@ This project is a web app for my household. Its primary goal is to be a chore tr
 - Package Manager: pnpm (always use pnpm, never npm or yarn)
 - Database: SQLite w/ Drizzle ORM
 
+## Code style
+- Always strive for concise, simple solutions.
+- If a problem can be solved in a simpler way, propose it.
+
 ## AI Agent Orchestration
 
 When working on large tasks, please use subagents to delegate and breakdown work. Leverage an orchestrator to delegate taks and use sub agents to execute those tasks. Ensure you choose models efficienyly for these subagents. Its not wise to use the same agent for an orchestrator vs subagents tasks.
