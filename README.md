@@ -30,19 +30,19 @@ pnpm exec wrangler login
 pnpm exec wrangler d1 create sweepy
 ```
 
-3. Copy the printed `database_id` into your environment before building/deploying (PowerShell session or a local `.env` — never commit secrets):
+3. Save the printed `database_id` for deploys (PowerShell session, or `.env` — never commit secrets):
 
 ```powershell
 $env:CLOUDFLARE_D1_DATABASE_ID = "<database-id-from-wrangler>"
 ```
 
-Or add to `.env`:
+Or in `.env`:
 
 ```env
 CLOUDFLARE_D1_DATABASE_ID=<database-id-from-wrangler>
 ```
 
-Without that variable, NuxtHub uses local file SQLite. With it set, the D1 driver and binding are enabled for production builds.
+`pnpm dev` always uses local file SQLite. The D1 driver is enabled only when `pnpm deploy` runs (it sets `SWEEPY_DEPLOY=1`), so keeping the ID in `.env` is safe for day-to-day local work.
 
 ## Local development
 
@@ -69,16 +69,17 @@ pnpm db:migrate
 
 ## Production deploy
 
-One atomic command — build, apply D1 migrations, then deploy. If migrations fail, deploy does not run:
+One atomic command — build (with D1 bindings), apply D1 migrations, then deploy. If the database ID is missing or migrations fail, deploy does not run:
 
 ```powershell
+# If not already in .env:
 $env:CLOUDFLARE_D1_DATABASE_ID = "<database-id>"
 pnpm deploy
 ```
 
 ## Verify the plumbing
 
-Placeholder table + API (not the real chore model):
+### Local
 
 ```powershell
 pnpm db:seed
@@ -86,7 +87,21 @@ pnpm db:seed
 Invoke-RestMethod http://localhost:3000/api/placeholders
 ```
 
-On production, hit `https://<your-worker>/api/placeholders` after deploy (seed is local-only; use the D1 console to insert rows for a production smoke check).
+Expected: a JSON array of rows with `id`, `label`, and `createdAt` (e.g. labels `alpha`, `beta`, `gamma`).
+
+### Production
+
+After `pnpm deploy`, open the worker URL wrangler prints, then:
+
+1. In the [Cloudflare D1 console](https://dash.cloudflare.com/), run:
+   `INSERT INTO placeholders (label, created_at) VALUES ('prod-smoke', unixepoch() * 1000);`
+2. Hit the endpoint:
+
+```powershell
+Invoke-RestMethod https://<your-worker>.workers.dev/api/placeholders
+```
+
+Expected: JSON including a row with `"label": "prod-smoke"`.
 
 ## Tests
 
