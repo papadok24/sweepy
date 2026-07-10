@@ -1,75 +1,97 @@
-# Nuxt Minimal Starter
+# Sweepy
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Household chore tracker and organizer.
+
+## Stack
+
+- [Nuxt 4](https://nuxt.com/) (TypeScript)
+- [NuxtHub](https://hub.nuxt.com/) + [Drizzle ORM](https://orm.drizzle.team/)
+- Local SQLite (`.data/db/sqlite.db`) / production [Cloudflare D1](https://developers.cloudflare.com/d1/)
 
 ## Setup
 
-Make sure to install dependencies:
-
-```bash
-# npm
-npm install
-
-# pnpm
+```powershell
 pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
 ```
 
-## Development Server
+### One-time Cloudflare provisioning (production)
 
-Start the development server on `http://localhost:3000`:
+Do this once per machine/account before the first production deploy:
 
-```bash
-# npm
-npm run dev
+1. Log in to Cloudflare:
 
-# pnpm
+```powershell
+pnpm exec wrangler login
+```
+
+2. Create the D1 database:
+
+```powershell
+pnpm exec wrangler d1 create sweepy
+```
+
+3. Copy the printed `database_id` into your environment before building/deploying (PowerShell session or a local `.env` — never commit secrets):
+
+```powershell
+$env:CLOUDFLARE_D1_DATABASE_ID = "<database-id-from-wrangler>"
+```
+
+Or add to `.env`:
+
+```env
+CLOUDFLARE_D1_DATABASE_ID=<database-id-from-wrangler>
+```
+
+Without that variable, NuxtHub uses local file SQLite. With it set, the D1 driver and binding are enabled for production builds.
+
+## Local development
+
+```powershell
 pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
+NuxtHub creates `.data/db/sqlite.db` automatically and applies migrations on startup. Open that file in any SQLite browser (e.g. Beekeeper Studio) to inspect data.
 
-Build the application for production:
+### Database scripts
 
-```bash
-# npm
-npm run build
+| Script | Purpose |
+| --- | --- |
+| `pnpm db:generate` | Generate SQL migrations from `server/db/schema.ts` |
+| `pnpm db:migrate` | Apply pending migrations to the local database |
+| `pnpm db:seed` | Load sample placeholder rows into the local database |
 
-# pnpm
-pnpm build
+After changing the schema:
 
-# yarn
-yarn build
-
-# bun
-bun run build
+```powershell
+pnpm db:generate
+pnpm db:migrate
 ```
 
-Locally preview production build:
+## Production deploy
 
-```bash
-# npm
-npm run preview
+One atomic command — build, apply D1 migrations, then deploy. If migrations fail, deploy does not run:
 
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
+```powershell
+$env:CLOUDFLARE_D1_DATABASE_ID = "<database-id>"
+pnpm deploy
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+## Verify the plumbing
+
+Placeholder table + API (not the real chore model):
+
+```powershell
+pnpm db:seed
+# with the dev server running:
+Invoke-RestMethod http://localhost:3000/api/placeholders
+```
+
+On production, hit `https://<your-worker>/api/placeholders` after deploy (seed is local-only; use the D1 console to insert rows for a production smoke check).
+
+## Tests
+
+```powershell
+pnpm test
+```
+
+Exercises `GET /api/placeholders` end-to-end against the real local SQLite database.
