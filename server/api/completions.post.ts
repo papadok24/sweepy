@@ -1,0 +1,55 @@
+import { and, eq } from 'drizzle-orm'
+import { db, schema } from 'hub:db'
+import type { Completion } from '../db/schema'
+import { completeBody } from '../utils/chore-schemas'
+import { isUniqueViolation } from '../utils/db-errors'
+import { readZodBody } from '../utils/validate'
+import { weekStartFor } from '../utils/week'
+
+export default eventHandler(async (event): Promise<Completion> => {
+  const body = await readZodBody(event, completeBody)
+  const weekStart = weekStartFor()
+
+  const assignment = await db
+    .select({
+      choreId: schema.choreAssignments.choreId,
+      active: schema.chores.active,
+    })
+    .from(schema.choreAssignments)
+    .innerJoin(schema.chores, eq(schema.choreAssignments.choreId, schema.chores.id))
+    .where(and(
+      eq(schema.choreAssignments.choreId, body.choreId),
+      eq(schema.choreAssignments.dayOfWeek, body.dayOfWeek),
+    ))
+    .get()
+
+  if (!assignment || !assignment.active) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'No assignment for this chore and day',
+    })
+  }
+
+  try {
+    const [completion] = await db.insert(schema.completions).values({
+      choreId: body.choreId,
+      dayOfWeek: body.dayOfWeek,
+      weekStart,
+    }).returning()
+
+    if (!completion) {
+      throw createError({ statusCode: 500, statusMessage: 'Failed to record completion' })
+    }
+
+    return completion
+  }
+  catch (error) {
+    if (isUniqueViolation(error)) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'Already completed for this week',
+      })
+    }
+    throw error
+  }
+})

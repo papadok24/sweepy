@@ -1,0 +1,63 @@
+import { eq } from 'drizzle-orm'
+import { db, schema } from 'hub:db'
+import { weekStartFor } from '../utils/week'
+
+export type WeekAssignment = {
+  choreId: number
+  choreName: string
+  choreNotes: string | null
+  completed: boolean
+  completedAt: number | null
+}
+
+export type WeekDay = {
+  dayOfWeek: number
+  assignments: WeekAssignment[]
+}
+
+export type WeekView = {
+  weekStart: string
+  days: WeekDay[]
+}
+
+export default eventHandler(async (): Promise<WeekView> => {
+  const weekStart = weekStartFor()
+
+  const rows = await db
+    .select({
+      choreId: schema.choreAssignments.choreId,
+      dayOfWeek: schema.choreAssignments.dayOfWeek,
+      choreName: schema.chores.name,
+      choreNotes: schema.chores.notes,
+    })
+    .from(schema.choreAssignments)
+    .innerJoin(schema.chores, eq(schema.choreAssignments.choreId, schema.chores.id))
+    .where(eq(schema.chores.active, true))
+
+  const weekCompletions = await db
+    .select()
+    .from(schema.completions)
+    .where(eq(schema.completions.weekStart, weekStart))
+
+  const completionByKey = new Map(
+    weekCompletions.map(c => [`${c.choreId}:${c.dayOfWeek}`, c] as const),
+  )
+
+  const days: WeekDay[] = Array.from({ length: 7 }, (_, dayOfWeek) => ({
+    dayOfWeek,
+    assignments: [],
+  }))
+
+  for (const row of rows) {
+    const completion = completionByKey.get(`${row.choreId}:${row.dayOfWeek}`)
+    days[row.dayOfWeek]!.assignments.push({
+      choreId: row.choreId,
+      choreName: row.choreName,
+      choreNotes: row.choreNotes,
+      completed: Boolean(completion),
+      completedAt: completion?.completedAt ?? null,
+    })
+  }
+
+  return { weekStart, days }
+})

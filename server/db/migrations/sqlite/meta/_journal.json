@@ -8,6 +8,27 @@
       "when": 1783701261447,
       "tag": "0000_rapid_boomer",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1783717112896,
+      "tag": "0001_foamy_stark_industries",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1783717343630,
+      "tag": "0002_flowery_stardust",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1783717831735,
+      "tag": "0003_broad_the_stranger",
+      "breakpoints": true
     }
   ]
 }
