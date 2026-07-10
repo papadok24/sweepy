@@ -1,0 +1,3 @@
+# Completions record chore + day + week, not an assignment reference
+
+Completion history must survive schedule changes: removing "Dishes" from Thursday (deleting that assignment) or archiving a chore must not erase past weeks' records. A completion therefore denormalizes its identity — `chore_id` + `day_of_week` + `week_start` (unique triple) — instead of holding a foreign key to the `chore_assignments` join table. Assignments define only the *current* schedule; the obvious alternative (completion → assignment FK) was rejected because it would either cascade-delete history or force us to block schedule edits that have history.
