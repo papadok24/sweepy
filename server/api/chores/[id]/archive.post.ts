@@ -1,21 +1,13 @@
 import { eq } from 'drizzle-orm'
 import { db, schema } from 'hub:db'
 import type { Chore } from '../../../db/schema'
-import { requireChoreId } from '../../../utils/chore-id'
+import { requireChore, requireChoreId } from '../../../utils/chore-id'
 
 export default eventHandler(async (event): Promise<Chore> => {
   const id = requireChoreId(event)
+  await requireChore(id)
 
-  const existing = await db
-    .select()
-    .from(schema.chores)
-    .where(eq(schema.chores.id, id))
-    .get()
-
-  if (!existing) {
-    throw createError({ statusCode: 404, statusMessage: 'Chore not found' })
-  }
-
+  // Soft-deactivate only — completions are never touched (ADR 0003).
   const [archived] = await db
     .update(schema.chores)
     .set({ active: false })

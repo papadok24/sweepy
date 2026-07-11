@@ -1,14 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { $fetch, setup } from '@nuxt/test-utils/e2e'
-
-type Chore = {
-  id: number
-  name: string
-  notes: string | null
-  active: boolean
-  createdAt: number
-}
+import type { Chore } from '../helpers/api-types.ts'
 
 describe('chore catalog API', async () => {
   await setup({

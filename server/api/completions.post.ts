@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import { db, schema } from 'hub:db'
 import type { Completion } from '../db/schema'
 import { completeBody } from '../utils/chore-schemas'
-import { isUniqueViolation } from '../utils/db-errors'
+import { withUniqueConflict } from '../utils/db-errors'
 import { readZodBody } from '../utils/validate'
 import { weekStartFor } from '../utils/week'
 
@@ -30,7 +30,7 @@ export default eventHandler(async (event): Promise<Completion> => {
     })
   }
 
-  try {
+  return await withUniqueConflict(async () => {
     const [completion] = await db.insert(schema.completions).values({
       choreId: body.choreId,
       dayOfWeek: body.dayOfWeek,
@@ -42,14 +42,5 @@ export default eventHandler(async (event): Promise<Completion> => {
     }
 
     return completion
-  }
-  catch (error) {
-    if (isUniqueViolation(error)) {
-      throw createError({
-        statusCode: 409,
-        statusMessage: 'Already completed for this week',
-      })
-    }
-    throw error
-  }
+  }, 'Already completed for this week')
 })

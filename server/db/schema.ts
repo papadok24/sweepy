@@ -35,7 +35,7 @@ export const choreAssignments = sqliteTable('chore_assignments', {
 export type ChoreAssignment = typeof choreAssignments.$inferSelect
 
 /**
- * Record that a chore+day slot was done in a given week.
+ * Record that a chore on a day bucket was done in a given week.
  * No FK to assignments (ADR 0003) — history survives schedule changes.
  * weekStart is the ISO date (YYYY-MM-DD) of that week's Monday.
  */

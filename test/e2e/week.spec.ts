@@ -1,38 +1,13 @@
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { $fetch, setup } from '@nuxt/test-utils/e2e'
-import { insertCompletion } from '../../scripts/seed.ts'
-import { previousWeekStart, weekStartFor } from '../../server/utils/week.ts'
-
-type Chore = {
-  id: number
-  name: string
-  notes: string | null
-  active: boolean
-  createdAt: number
-}
-
-type Completion = {
-  id: number
-  choreId: number
-  dayOfWeek: number
-  weekStart: string
-  completedAt: number
-}
-
-type WeekView = {
-  weekStart: string
-  days: Array<{
-    dayOfWeek: number
-    assignments: Array<{
-      choreId: number
-      choreName: string
-      choreNotes: string | null
-      completed: boolean
-      completedAt: number | null
-    }>
-  }>
-}
+import type { Chore, Completion, WeekView } from '../helpers/api-types.ts'
+import {
+  countCompletionsForChore,
+  insertCompletion,
+  previousWeekStart,
+} from '../helpers/fixtures.ts'
+import { weekStartFor } from '../../server/utils/week.ts'
 
 describe('week view and completions API', async () => {
   await setup({
@@ -126,6 +101,12 @@ describe('week view and completions API', async () => {
       body: { choreId: chore.id, dayOfWeek: 2 },
     })
 
+    // Idempotent: unchecking again still succeeds
+    await $fetch('/api/completions', {
+      method: 'DELETE',
+      body: { choreId: chore.id, dayOfWeek: 2 },
+    })
+
     const weekAfterUncheck = await $fetch<WeekView>('/api/week')
     expect(findAssignment(weekAfterUncheck, chore.id, 2)?.completed).toBe(false)
 
@@ -147,17 +128,15 @@ describe('week view and completions API', async () => {
 
     await $fetch(`/api/chores/${chore.id}/assignments/4`, { method: 'DELETE' })
 
-    // Assignment gone from the schedule…
     let week = await $fetch<WeekView>('/api/week')
     expect(findAssignment(week, chore.id, 4)).toBeUndefined()
 
-    // …but re-adding resurfaces the existing completion
     await assign(chore.id, 4)
     week = await $fetch<WeekView>('/api/week')
     expect(findAssignment(week, chore.id, 4)?.completed).toBe(true)
   })
 
-  it('hides archived chores from the week view', async () => {
+  it('hides archived chores from the week view but retains their completions', async () => {
     const chore = await createChore('Mop')
     await assign(chore.id, 5)
 
@@ -170,6 +149,9 @@ describe('week view and completions API', async () => {
 
     const week = await $fetch<WeekView>('/api/week')
     expect(findAssignment(week, chore.id, 5)).toBeUndefined()
+
+    // Archive only flips active — completion rows remain (ADR 0003).
+    expect(await countCompletionsForChore(chore.id)).toBe(1)
   })
 
   it('does not mark this week complete from a prior-week completion', async () => {

@@ -2,7 +2,8 @@ import { eq } from 'drizzle-orm'
 import { db, schema } from 'hub:db'
 import { weekStartFor } from '../utils/week'
 
-export type WeekAssignment = {
+/** A day-bucket assignment plus its completion status for the current week. */
+export type WeekDayEntry = {
   choreId: number
   choreName: string
   choreNotes: string | null
@@ -12,7 +13,7 @@ export type WeekAssignment = {
 
 export type WeekDay = {
   dayOfWeek: number
-  assignments: WeekAssignment[]
+  assignments: WeekDayEntry[]
 }
 
 export type WeekView = {

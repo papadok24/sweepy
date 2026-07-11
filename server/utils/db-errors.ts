@@ -22,3 +22,22 @@ export function isUniqueViolation(error: unknown): boolean {
   }
   return false
 }
+
+/** Run `fn`; map unique-constraint failures to a 409 with `conflictMessage`. */
+export async function withUniqueConflict<T>(
+  fn: () => Promise<T>,
+  conflictMessage: string,
+): Promise<T> {
+  try {
+    return await fn()
+  }
+  catch (error) {
+    if (isUniqueViolation(error)) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: conflictMessage,
+      })
+    }
+    throw error
+  }
+}

@@ -18,11 +18,3 @@ export function weekStartFor(date: Date = new Date()): string {
   local.setDate(local.getDate() + mondayOffset)
   return formatIsoDate(local)
 }
-
-/** ISO date of the Monday one week before `weekStart`. */
-export function previousWeekStart(weekStart: string): string {
-  const [y, m, d] = weekStart.split('-').map(Number)
-  const date = new Date(y!, m! - 1, d!)
-  date.setDate(date.getDate() - 7)
-  return formatIsoDate(date)
-}

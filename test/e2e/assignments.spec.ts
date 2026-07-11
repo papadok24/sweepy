@@ -1,20 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { $fetch, setup } from '@nuxt/test-utils/e2e'
-
-type Chore = {
-  id: number
-  name: string
-  notes: string | null
-  active: boolean
-  createdAt: number
-}
-
-type Assignment = {
-  id: number
-  choreId: number
-  dayOfWeek: number
-}
+import type { Assignment, Chore } from '../helpers/api-types.ts'
 
 describe('day-bucket assignments API', async () => {
   await setup({
@@ -90,7 +77,6 @@ describe('day-bucket assignments API', async () => {
       method: 'DELETE',
     })
 
-    // Re-adding the removed day succeeds; the other day still conflicts
     const readded = await $fetch<Assignment>(`/api/chores/${chore.id}/assignments`, {
       method: 'POST',
       body: { dayOfWeek: 2 },
