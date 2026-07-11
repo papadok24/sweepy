@@ -4,6 +4,7 @@ Sweepy’s raster images (branding and UI illustrations under `public/img/`) go 
 
 ## Consequences
 
-- Rasters use `<NuxtImg>` / `<NuxtPicture>` with project defaults (modern formats, quality, lazy).
+- Rasters use `<NuxtImg>` / `<NuxtPicture>` with project defaults (modern formats and quality in Nuxt Image config).
+- Lazy loading is a component convention (`loading="lazy"` on each `<NuxtImg>`): `@nuxt/image` has no project-level `loading` option.
 - Source files live in `public/img/`.
 - Empty-state Sweepy CSS placeholders are unchanged by this decision; wiring them to Nuxt Image is a separate change.
