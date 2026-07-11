@@ -8,7 +8,7 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   devtools: { enabled: true },
   // ADR-0005: static rasters via Nuxt Image; build-time/static provider for Workers.
-  // Lazy loading is a <NuxtImg loading="lazy"> convention (no module-level loading option).
+  // Lazy loading defaults via <AppImg> (module has no loading option).
   image: {
     provider: 'ipxStatic',
     format: ['avif', 'webp'],

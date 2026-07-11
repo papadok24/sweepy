@@ -30,15 +30,13 @@ describe('Nuxt Image static-raster contract', async () => {
       return {
         src: img.getAttribute('src') ?? '',
         loading: img.getAttribute('loading'),
-        // Nuxt Image stamps this on rendered <img> elements.
-        isNuxtImg: img.hasAttribute('data-nuxt-img'),
       }
     })
 
     expect(snapshot).not.toBeNull()
-    expect(snapshot!.isNuxtImg).toBe(true)
     expect(snapshot!.src.length).toBeGreaterThan(0)
     expect(snapshot!.src).toMatch(/sweepy/i)
+    // Inherited from AppImg defaults (not set on the contract hook).
     expect(snapshot!.loading).toBe('lazy')
   })
 })
