@@ -1,0 +1,3 @@
+# Vanilla CSS is the styling system
+
+Sweepy’s UI will be styled with hand-authored vanilla CSS (custom properties, `@layer`, nesting, container queries, and related modern CSS) rather than Tailwind, UnoCSS, or a component CSS framework. The aesthetic is a cohesive kawaii design language with strict surface-vs-control shape rules and semantic tokens — utility-class catalogs fight that coherence and make container-query / layered architecture harder to keep intentional. Rejected alternatives: Tailwind/Uno (fast iteration, weak fit for a curated token + recipe system), and a Vue component library’s styles (would override Sweepy’s pastel/chunky language). Icons still come from `@nuxt/icon` + Iconify; that choice is orthogonal to how layout and theme CSS are authored.

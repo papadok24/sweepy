@@ -4,7 +4,8 @@ const isDeploy = process.env.SWEEPY_DEPLOY === '1'
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
-  modules: ['@nuxthub/core'],
+  modules: ['@nuxthub/core', '@nuxt/icon'],
+  css: ['~/assets/css/main.css'],
   devtools: { enabled: true },
   hub: {
     // Local (`pnpm dev` / tests): always file SQLite in `.data/db/`.
