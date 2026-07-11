@@ -19,7 +19,7 @@ describe('design baseline contract', async () => {
 
     await page.waitForSelector('[data-design-shell]')
 
-    const contract = await page.evaluate(() => {
+    const designBaselineSnapshot = await page.evaluate(() => {
       const root = getComputedStyle(document.documentElement)
 
       const token = (name: string) => root.getPropertyValue(name).trim()
@@ -29,14 +29,30 @@ describe('design baseline contract', async () => {
       const field = document.querySelector('.field.control')
       const weekBoard = document.querySelector('.week-board')
       const quietSunday = document.querySelector('.day-bucket--quiet')
+      const emptyStateNested = document.querySelector('.day-bucket.surface .empty-state')
+      const emptyStateStandalone = document.querySelector('.empty-state.surface')
       const completion = document.querySelector('.completion')
+      const celebrateBeat = document.querySelector('[data-celebrate-beat]')
       const icon = document.querySelector('[data-design-icon]')
       const heading = document.querySelector('.today-shell h1')
+
+      const expressions = {
+        idle: Boolean(document.querySelector('[data-sweepy-expression="idle"]')),
+        cheer: Boolean(document.querySelector('[data-sweepy-expression="cheer"]')),
+        wink: Boolean(document.querySelector('[data-sweepy-expression="wink"]')),
+      }
 
       const surfaceStyle = surface ? getComputedStyle(surface) : null
       const controlStyle = control ? getComputedStyle(control) : null
       const fieldStyle = field ? getComputedStyle(field) : null
       const headingStyle = heading ? getComputedStyle(heading) : null
+      const nestedEmptyParent = emptyStateNested?.closest('.day-bucket')
+      const nestedEmptyParentStyle = nestedEmptyParent
+        ? getComputedStyle(nestedEmptyParent)
+        : null
+      const nestedEmptyStyle = emptyStateNested
+        ? getComputedStyle(emptyStateNested)
+        : null
 
       return {
         tokens: {
@@ -57,8 +73,13 @@ describe('design baseline contract', async () => {
           hasField: Boolean(field),
           hasWeekBoard: Boolean(weekBoard),
           hasQuietSunday: Boolean(quietSunday),
+          hasEmptyState: Boolean(emptyStateNested || emptyStateStandalone),
           hasCompletion: Boolean(completion),
+          hasCelebrateBeat: Boolean(celebrateBeat),
           hasIcon: Boolean(icon),
+          hasIdle: expressions.idle,
+          hasCheer: expressions.cheer,
+          hasWink: expressions.wink,
         },
         surface: surfaceStyle
           ? {
@@ -84,6 +105,15 @@ describe('design baseline contract', async () => {
               bodyFamily: getComputedStyle(document.body).fontFamily,
             }
           : null,
+        nestedEmpty: nestedEmptyParentStyle && nestedEmptyStyle
+          ? {
+              parentHeight: nestedEmptyParentStyle.height,
+              childHeight: nestedEmptyStyle.height,
+              parentOverflowsChild:
+                Number.parseFloat(nestedEmptyParentStyle.height)
+                >= Number.parseFloat(nestedEmptyStyle.height),
+            }
+          : null,
       }
     })
 
@@ -98,34 +128,46 @@ describe('design baseline contract', async () => {
       'borderControl',
     ] as const
     for (const name of colorTokenNames) {
-      expect(contract.tokens[name]).toMatch(/^(#|oklch|rgb|hsl|color-mix)/)
+      expect(designBaselineSnapshot.tokens[name]).toMatch(/^(#|oklch|rgb|hsl|color-mix)/)
     }
 
-    expect(contract.tokens.fontDisplay.toLowerCase()).toContain('fredoka')
-    expect(contract.tokens.fontBody.toLowerCase()).toContain('atkinson')
+    expect(designBaselineSnapshot.tokens.fontDisplay.toLowerCase()).toContain('fredoka')
+    expect(designBaselineSnapshot.tokens.fontBody.toLowerCase()).toContain('atkinson')
 
-    expect(contract.hooks.hasSurface).toBe(true)
-    expect(contract.hooks.hasControl).toBe(true)
-    expect(contract.hooks.hasField).toBe(true)
-    expect(contract.hooks.hasWeekBoard).toBe(true)
-    expect(contract.hooks.hasQuietSunday).toBe(true)
-    expect(contract.hooks.hasCompletion).toBe(true)
-    expect(contract.hooks.hasIcon).toBe(true)
+    const requiredHooks = [
+      'hasSurface',
+      'hasControl',
+      'hasField',
+      'hasWeekBoard',
+      'hasQuietSunday',
+      'hasEmptyState',
+      'hasCompletion',
+      'hasCelebrateBeat',
+      'hasIcon',
+      'hasIdle',
+      'hasCheer',
+      'hasWink',
+    ] as const
+    for (const hook of requiredHooks) {
+      expect(designBaselineSnapshot.hooks[hook], hook).toBe(true)
+    }
 
-    expect(contract.surface).not.toBeNull()
-    expect(contract.control).not.toBeNull()
-    expect(contract.field).not.toBeNull()
-    expect(contract.type).not.toBeNull()
+    expect(designBaselineSnapshot.surface).not.toBeNull()
+    expect(designBaselineSnapshot.control).not.toBeNull()
+    expect(designBaselineSnapshot.field).not.toBeNull()
+    expect(designBaselineSnapshot.type).not.toBeNull()
+    expect(designBaselineSnapshot.nestedEmpty).not.toBeNull()
+    expect(designBaselineSnapshot.nestedEmpty!.parentOverflowsChild).toBe(true)
 
     // Surfaces stay soft (no chunky outline); controls are chunky + tappable.
-    expect(Number.parseFloat(contract.surface!.borderWidth)).toBeLessThan(1.5)
-    expect(Number.parseFloat(contract.surface!.borderRadius)).toBeGreaterThanOrEqual(12)
-    expect(Number.parseFloat(contract.control!.borderWidth)).toBeGreaterThanOrEqual(2)
-    expect(contract.control!.minHeight).toBeGreaterThanOrEqual(44)
-    expect(Number.parseFloat(contract.field!.borderWidth)).toBeGreaterThanOrEqual(2)
-    expect(contract.field!.minHeight).toBeGreaterThanOrEqual(44)
+    expect(Number.parseFloat(designBaselineSnapshot.surface!.borderWidth)).toBeLessThan(1.5)
+    expect(Number.parseFloat(designBaselineSnapshot.surface!.borderRadius)).toBeGreaterThanOrEqual(12)
+    expect(Number.parseFloat(designBaselineSnapshot.control!.borderWidth)).toBeGreaterThanOrEqual(2)
+    expect(designBaselineSnapshot.control!.minHeight).toBeGreaterThanOrEqual(44)
+    expect(Number.parseFloat(designBaselineSnapshot.field!.borderWidth)).toBeGreaterThanOrEqual(2)
+    expect(designBaselineSnapshot.field!.minHeight).toBeGreaterThanOrEqual(44)
 
-    expect(contract.type!.headingFamily.toLowerCase()).toContain('fredoka')
-    expect(contract.type!.bodyFamily.toLowerCase()).toContain('atkinson')
+    expect(designBaselineSnapshot.type!.headingFamily.toLowerCase()).toContain('fredoka')
+    expect(designBaselineSnapshot.type!.bodyFamily.toLowerCase()).toContain('atkinson')
   })
 })

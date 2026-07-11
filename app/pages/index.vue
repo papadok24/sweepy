@@ -13,7 +13,12 @@ const celebratingId = ref<number | null>(1)
 <template>
   <div class="app-shell" data-design-shell>
     <header class="brand-lockup">
-      <span class="empty-state__mascot" aria-hidden="true" title="Sweepy idle" />
+      <span
+        class="sweepy-mascot sweepy-mascot--sm sweepy-mascot--idle"
+        data-sweepy-expression="idle"
+        aria-hidden="true"
+        title="Sweepy idle"
+      />
       <div>
         <p class="brand-lockup__title">Sweepy</p>
         <p class="brand-lockup__tag">Household chores, day by day</p>
@@ -60,6 +65,16 @@ const celebratingId = ref<number | null>(1)
         </li>
       </ul>
 
+      <div class="celebrate-beat surface" data-celebrate-beat>
+        <span
+          class="sweepy-mascot sweepy-mascot--sm sweepy-mascot--cheer"
+          data-sweepy-expression="cheer"
+          aria-hidden="true"
+          title="Sweepy cheer"
+        />
+        <p class="celebrate-beat__copy">Nice — chore complete!</p>
+      </div>
+
       <form class="chore-list" @submit.prevent>
         <label class="sr-only" for="chore-name">Chore name</label>
         <input
@@ -89,10 +104,30 @@ const celebratingId = ref<number | null>(1)
             v-if="dayOfWeek === 0"
             class="empty-state"
           >
-            <span class="empty-state__mascot" aria-hidden="true" title="Sweepy at rest" />
+            <span
+              class="sweepy-mascot sweepy-mascot--idle"
+              data-sweepy-expression="idle"
+              aria-hidden="true"
+              title="Sweepy at rest"
+            />
             <p class="empty-state__title">Rest day</p>
             <p class="empty-state__body">
               Sunday is usually kept free — assignments are still allowed.
+            </p>
+          </div>
+          <div
+            v-else-if="dayOfWeek === 2"
+            class="empty-state"
+          >
+            <span
+              class="sweepy-mascot sweepy-mascot--wink"
+              data-sweepy-expression="wink"
+              aria-hidden="true"
+              title="Sweepy wink"
+            />
+            <p class="empty-state__title">All clear</p>
+            <p class="empty-state__body">
+              No chores assigned to this day bucket.
             </p>
           </div>
           <p v-else-if="dayOfWeek === 1" class="brand-lockup__tag">

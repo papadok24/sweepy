@@ -135,13 +135,15 @@ Day bucket `dayOfWeek === 0` uses `.day-bucket--quiet`: softer tint (`--color-su
 
 Same name as the product (see `CONTEXT.md`).
 
-| Expression | When |
-| --- | --- |
-| **idle** | Branding, gentle empty states |
-| **cheer** | Celebration beats |
-| **wink** | Playful empty / all-clear moments |
+| Expression | Hook | When |
+| --- | --- | --- |
+| **idle** | `.sweepy-mascot--idle` | Branding, gentle empty states |
+| **cheer** | `.sweepy-mascot--cheer` | Celebration beats (`.celebrate-beat`) |
+| **wink** | `.sweepy-mascot--wink` | Playful empty / all-clear moments |
 
-Placement: brand chrome, empty panels, celebration overlays — **never** inside every chore row. Size: roughly 64–120px in empty states; smaller in brand lockups.
+CSS hooks: `.sweepy-mascot` (+ size modifier `.sweepy-mascot--sm` for brand lockups). Mark expressions with `data-sweepy-expression="idle|cheer|wink"` for tests and future asset swaps.
+
+Placement: brand chrome, empty panels, celebration beats — **never** inside every chore row. Size: roughly 64–120px in empty states; smaller in brand lockups.
 
 ## Icons
 
@@ -166,7 +168,9 @@ Placement: brand chrome, empty panels, celebration overlays — **never** inside
 | Chore slot | `.chore-slot.surface` | Soft card row for a chore |
 | Completion | `.completion.control` | Unchecked / checked (`aria-checked`) |
 | Celebrate | `.celebrate` / `.celebrate--soft` | Motion on successful check |
-| Empty / rest | `.empty-state.surface` | Sweepy + short copy |
+| Celebrate beat | `.celebrate-beat` + `.sweepy-mascot--cheer` | Mascot cheer moment (not every row) |
+| Empty / rest | `.empty-state.surface` (standalone) or `.day-bucket .empty-state` (nested) | Nested empty states do **not** add a second `.surface` — the day bucket is the surface |
+| Mascot | `.sweepy-mascot` + `--idle` / `--cheer` / `--wink` | Expression set |
 | Buttons | `.btn.control` + `.btn--primary` / `.btn--secondary` | Mint primary; lavender/outline secondary |
 | Fields | `.field.control` | Text inputs matching control outline |
 

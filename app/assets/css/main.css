@@ -360,10 +360,10 @@
     border-radius: inherit;
     pointer-events: none;
     box-shadow:
-      0.55rem -0.45rem 0 -0.2rem color-mix(in srgb, var(--color-brand) 80%, white),
-      -0.5rem -0.55rem 0 -0.22rem color-mix(in srgb, var(--color-secondary) 75%, white),
-      0.05rem -0.75rem 0 -0.18rem color-mix(in srgb, var(--color-accent-soft) 90%, white),
-      0.7rem 0.15rem 0 -0.22rem color-mix(in srgb, var(--color-quiet) 70%, white);
+      0.55rem -0.45rem 0 -0.2rem color-mix(in srgb, var(--color-brand) 80%, var(--color-on-accent)),
+      -0.5rem -0.55rem 0 -0.22rem color-mix(in srgb, var(--color-secondary) 75%, var(--color-on-accent)),
+      0.05rem -0.75rem 0 -0.18rem color-mix(in srgb, var(--color-accent-soft) 90%, var(--color-on-accent)),
+      0.7rem 0.15rem 0 -0.22rem color-mix(in srgb, var(--color-quiet) 70%, var(--color-on-accent));
     animation: sweepy-sparkle var(--motion-med) var(--ease-spring);
   }
 
@@ -405,20 +405,25 @@
     display: grid;
     gap: var(--space-3);
     grid-template-columns: 1fr;
+    align-items: stretch;
   }
 
   @container week (min-width: 52rem) {
     .week-board__days {
       grid-template-columns: repeat(7, minmax(0, 1fr));
-      align-items: start;
     }
   }
 
   .day-bucket {
+    container-type: inline-size;
+    container-name: day;
     display: grid;
+    grid-template-rows: auto 1fr;
+    align-content: start;
     gap: var(--space-3);
     padding: var(--space-4);
-    min-height: 8rem;
+    min-width: 0;
+    height: auto;
   }
 
   .day-bucket__label {
@@ -437,16 +442,50 @@
     color: var(--color-quiet);
   }
 
-  /* Empty / rest */
+  /* Empty / rest — standalone surfaces use .empty-state.surface;
+     nested in a day bucket, the bucket is the surface (no nested card). */
   .empty-state {
     display: grid;
     justify-items: center;
+    align-content: center;
     gap: var(--space-3);
     padding: var(--space-5);
     text-align: center;
+    min-width: 0;
   }
 
-  .empty-state__mascot {
+  .day-bucket > .empty-state {
+    padding: var(--space-2);
+    gap: var(--space-2);
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  @container day (max-width: 11rem) {
+    .day-bucket > .empty-state {
+      padding: var(--space-1);
+      gap: var(--space-2);
+    }
+
+    .day-bucket .sweepy-mascot {
+      width: 2.75rem;
+      height: 2.75rem;
+      border-width: 2px;
+    }
+
+    .day-bucket .empty-state__title {
+      font-size: var(--font-size-md);
+    }
+
+    .day-bucket .empty-state__body {
+      font-size: var(--font-size-sm);
+      line-height: 1.35;
+    }
+  }
+
+  /* Sweepy mascot placeholder — expressions via modifiers */
+  .sweepy-mascot {
     width: 5.5rem;
     height: 5.5rem;
     border-radius: 50%;
@@ -456,6 +495,31 @@
       radial-gradient(circle at 50% 55%, var(--color-brand-soft) 0 55%, var(--color-quiet-soft) 56%);
     border: 3px solid var(--color-border-control);
     box-shadow: var(--shadow-soft);
+    flex-shrink: 0;
+  }
+
+  .sweepy-mascot--sm {
+    width: 3rem;
+    height: 3rem;
+    border-width: 2.5px;
+  }
+
+  /* --idle uses the default .sweepy-mascot face */
+
+  .sweepy-mascot--cheer {
+    background:
+      radial-gradient(circle at 35% 28%, var(--color-on-accent) 0 16%, transparent 17%),
+      radial-gradient(circle at 65% 28%, var(--color-on-accent) 0 16%, transparent 17%),
+      radial-gradient(circle at 50% 72%, var(--color-on-accent) 0 10%, transparent 11%),
+      radial-gradient(circle at 50% 55%, var(--color-accent-soft) 0 55%, var(--color-brand-soft) 56%);
+    transform: rotate(-6deg) scale(1.05);
+  }
+
+  .sweepy-mascot--wink {
+    background:
+      radial-gradient(circle at 35% 30%, var(--color-on-accent) 0 18%, transparent 19%),
+      radial-gradient(ellipse 18% 6% at 65% 32%, var(--color-border-control) 0 55%, transparent 56%),
+      radial-gradient(circle at 50% 55%, var(--color-brand-soft) 0 55%, var(--color-secondary-soft) 56%);
   }
 
   .empty-state__title {
@@ -467,6 +531,25 @@
   .empty-state__body {
     color: var(--color-text-muted);
     max-width: 22rem;
+    min-width: 0;
+  }
+
+  .day-bucket .empty-state__body {
+    max-width: none;
+  }
+
+  .celebrate-beat {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .celebrate-beat__copy {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--font-size-lg);
+    color: var(--color-accent-strong);
   }
 
   /* Demo nav */
