@@ -110,15 +110,18 @@ Space scale: 4 / 8 / 12 / 16 / 24 / 32 / 48 (`--space-1` … `--space-7`).
 - Soft-stack: rapid repeats use `.celebrate--soft` (lighter motion, shorter sparkle).
 - `prefers-reduced-motion: reduce` — collapse celebrations to an instant state change (no sparkle travel).
 
-### Audio / haptic contracts (spec only — no assets yet)
+### Audio / haptic contracts
 
-| Event | When | Visual | Audio (later) | Haptic (later) |
+| Event | When | Visual | Audio | Haptic (later) |
 | --- | --- | --- | --- | --- |
-| `complete` | First completion after a quiet gap | Full celebrate | Short bright chime | Light buzz |
-| `complete-soft` | Rapid follow-up completions | Soft celebrate | Quieter / shorter tick | Softer or skipped |
+| `complete` | First completion after a quiet gap | Full celebrate | `/audio/sweepy_chore_complete.wav` at authored volume | Light buzz |
+| `complete-soft` | Rapid follow-up Completions (same 1.5s window as soft celebrate) | Soft celebrate | Same completion WAV at lower volume | Softer or skipped |
+| `add-chore` | After Chore create + Week view refresh both succeed | Drawer closes / board updates | `/audio/sweepy_add_chore.wav` | — |
 | `day-clear` (future) | Last chore in Today’s bucket done | Louder milestone variant | Distinct fanfare | Stronger pattern |
 
-Fallbacks: OS mute / in-app mute → no audio; no vibrate API / preference off → no haptic; reduced motion → visual-only instant state.
+Playback is best effort via one client-only sound interface that preloads and reuses the two WAV players. Repeated triggers restart the existing cue (no overlapping players). Rejected or unsupported media playback is ignored and never alters Chore creation, Completion persistence, or visual feedback. Browser / OS mute remains authoritative — no in-app sound preference. Reduced motion stays independent of audio.
+
+Fallbacks: OS mute → no audible output (actions still succeed); no vibrate API / preference off → no haptic; reduced motion → visual-only instant state (audio unchanged).
 
 ## Information architecture
 

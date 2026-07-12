@@ -16,6 +16,8 @@ const {
   dismissSyncNotice,
 } = useWeekStore()
 
+const { playAddChore, playComplete } = useChoreSounds()
+
 const todayLabel = computed(() => dayLabels[todayIndex.value] ?? 'Today')
 
 /** Add-chore bottom drawer (issue #27) — await-and-refresh, not optimistic. */
@@ -88,6 +90,7 @@ async function submitAddChore() {
       },
     })
     await refreshWeek()
+    playAddChore()
     closeAddChore()
   }
   catch {
@@ -157,6 +160,7 @@ function onToggle(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
   const now = Date.now()
   celebrateSoft.value = now - lastCompletedAt < RAPID_REPEAT_MS
   lastCompletedAt = now
+  playComplete({ soft: celebrateSoft.value })
   celebratingKey.value = completionKey(choreId, dayOfWeek)
   celebrateTimer = setTimeout(() => {
     celebratingKey.value = null
