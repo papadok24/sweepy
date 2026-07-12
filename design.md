@@ -126,6 +126,7 @@ Fallbacks: OS mute / in-app mute → no audio; no vibrate API / preference off �
 - **Week** (secondary) — all day buckets for planning. Recipe: `.week-board`.
 - **Mobile-first** — stacked day sections by default.
 - **Wide container** — `.week-board` becomes columns via **container queries** (not viewport-only).
+- **iOS Safari bar** — phone UX is validated against iOS Safari in a browser tab (iOS 16.2+); see ADR 0007 and the [real iPhone checklist](docs/checklists/ios-safari-iphone.md).
 
 ## Quiet Sunday
 
@@ -181,5 +182,7 @@ Placement: brand chrome, empty panels, celebration beats — **never** inside ev
 | Doctrine | `design.md` (this file) |
 | Baseline CSS | `app/assets/css/main.css` — `@layer reset, tokens, base, components, utilities` |
 | ADR | `docs/adr/0004-vanilla-css-design-system.md` |
+| Safari / mobile support | `docs/adr/0007-ios-safari-mobile-support.md` |
+| Real iPhone checklist | `docs/checklists/ios-safari-iphone.md` |
 
 Wire CSS in `nuxt.config.ts` via `css: ['~/assets/css/main.css']`.

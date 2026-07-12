@@ -1,4 +1,5 @@
-@import url('https://fonts.bunny.net/css?family=atkinson-hyperlegible:400,700|fredoka:500,600');
+/* font-display=optional: slow kitchen Wi‑Fi keeps system text (ADR 0007). */
+@import url('https://fonts.bunny.net/css?family=atkinson-hyperlegible:400,700|fredoka:500,600&display=optional');
 
 @layer reset, tokens, base, components, utilities;
 
@@ -12,10 +13,12 @@
   html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    overflow-x: clip;
   }
 
   body {
     margin: 0;
+    overflow-x: clip;
   }
 
   button,
@@ -127,11 +130,18 @@
   }
 
   body {
+    min-height: 100vh;
     min-height: 100dvh;
     background:
       radial-gradient(120% 80% at 10% -10%, var(--color-canvas-wash-brand), transparent 55%),
       radial-gradient(90% 70% at 100% 0%, var(--color-canvas-wash-accent), transparent 50%),
       var(--color-canvas);
+  }
+
+  /* In-page Today / Week anchors — survive Safari collapsing toolbar. */
+  #today,
+  #week {
+    scroll-margin-top: max(1rem, env(safe-area-inset-top, 0px));
   }
 
   h1,
@@ -234,12 +244,13 @@
     border-color: var(--color-border-control);
   }
 
-  /* Fields */
+  /* Fields — ≥16px avoids iOS Safari focus-zoom; never lock viewport scale. */
   .field {
     display: block;
     width: 100%;
     padding: var(--space-3) var(--space-4);
     background: var(--color-surface);
+    font-size: max(1rem, 16px);
   }
 
   .field::placeholder {
@@ -292,7 +303,8 @@
   }
 
   .sync-notice__dismiss {
-    min-height: 2.5rem;
+    min-height: var(--target-min);
+    min-width: var(--target-min);
     padding-inline: var(--space-3);
     font-size: var(--font-size-sm);
   }

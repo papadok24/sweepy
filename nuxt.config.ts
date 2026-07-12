@@ -6,6 +6,17 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   modules: ['@nuxthub/core', '@nuxt/icon', '@nuxt/image'],
   css: ['~/assets/css/main.css'],
+  // ADR 0007: pinch-zoom stays allowed — never user-scalable=no / max-scale locks.
+  app: {
+    head: {
+      meta: [
+        {
+          name: 'viewport',
+          content: 'width=device-width, initial-scale=1, viewport-fit=cover',
+        },
+      ],
+    },
+  },
   devtools: { enabled: true },
   // ADR-0005: static rasters via Nuxt Image; build-time/static provider for Workers.
   // Lazy loading defaults via <AppImg> (module has no loading option).
