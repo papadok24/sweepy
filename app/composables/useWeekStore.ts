@@ -101,6 +101,9 @@ export function useWeekStore() {
     if (!entry) return
     entry.completed = completed
     entry.completedAt = completed ? Date.now() : null
+    // Nuxt 4's useAsyncData returns a shallowRef, so deep mutations don't
+    // notify subscribers on their own — trigger explicitly.
+    triggerRef(week)
   }
 
   async function rehydrateFromServer() {

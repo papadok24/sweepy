@@ -17,7 +17,32 @@ const {
 
 const todayLabel = computed(() => dayLabels[todayIndex.value] ?? 'Today')
 
+/**
+ * One-shot celebration state (design.md "Delight with kindness"):
+ * full sparkle on a completion after a quiet gap, soft sparkle on rapid
+ * repeats. Cleared once the animation has played so completed rows rest
+ * with no lingering pseudo-element to flicker on unrelated re-renders.
+ */
+const RAPID_REPEAT_MS = 1500
+const CELEBRATE_CLEAR_MS = 400 // > --motion-med (280ms)
+
 const celebratingKey = ref<string | null>(null)
+const celebrateSoft = ref(false)
+let lastCompletedAt = 0
+let celebrateTimer: ReturnType<typeof setTimeout> | undefined
+
+onBeforeUnmount(() => {
+  if (celebrateTimer !== undefined) clearTimeout(celebrateTimer)
+})
+
+function celebrationClass(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
+  const active = entry.completed
+    && celebratingKey.value === completionKey(choreId, dayOfWeek)
+  return {
+    celebrate: active && !celebrateSoft.value,
+    'celebrate--soft': active && celebrateSoft.value,
+  }
+}
 
 const todayAssignments = computed(() => {
   if (!week.value) return [] as WeekDayEntry[]
@@ -40,9 +65,22 @@ function onToggle(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
   if (!canToggle.value) return
   const willComplete = !entry.completed
   toggleCompletion(choreId, dayOfWeek)
-  celebratingKey.value = willComplete
-    ? completionKey(choreId, dayOfWeek)
-    : null
+
+  if (celebrateTimer !== undefined) clearTimeout(celebrateTimer)
+
+  if (!willComplete) {
+    celebratingKey.value = null
+    return
+  }
+
+  const now = Date.now()
+  celebrateSoft.value = now - lastCompletedAt < RAPID_REPEAT_MS
+  lastCompletedAt = now
+  celebratingKey.value = completionKey(choreId, dayOfWeek)
+  celebrateTimer = setTimeout(() => {
+    celebratingKey.value = null
+    celebrateTimer = undefined
+  }, CELEBRATE_CLEAR_MS)
 }
 </script>
 
@@ -53,11 +91,16 @@ function onToggle(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
     :data-week-ready="week ? 'true' : 'false'"
   >
     <header class="brand-lockup">
-      <span
+      <AppImg
         class="sweepy-mascot sweepy-mascot--sm sweepy-mascot--idle"
         data-sweepy-expression="idle"
+        src="/img/sweepy.png"
+        alt=""
+        width="48"
+        height="48"
+        loading="eager"
         aria-hidden="true"
-        title="Sweepy idle"
+        title="Sweepy"
       />
       <div>
         <p class="brand-lockup__title">Sweepy</p>
@@ -143,14 +186,7 @@ function onToggle(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
             <button
               type="button"
               class="completion control"
-              :class="{
-                celebrate:
-                  entry.completed
-                  && celebratingKey === completionKey(entry.choreId, todayIndex),
-                'celebrate--soft':
-                  entry.completed
-                  && celebratingKey !== completionKey(entry.choreId, todayIndex),
-              }"
+              :class="celebrationClass(entry.choreId, todayIndex, entry)"
               role="checkbox"
               :aria-checked="entry.completed"
               :aria-label="ariaLabelFor(entry)"
@@ -278,14 +314,7 @@ function onToggle(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
               <button
                 type="button"
                 class="completion control"
-                :class="{
-                  celebrate:
-                    entry.completed
-                    && celebratingKey === completionKey(entry.choreId, day.dayOfWeek),
-                  'celebrate--soft':
-                    entry.completed
-                    && celebratingKey !== completionKey(entry.choreId, day.dayOfWeek),
-                }"
+                :class="celebrationClass(entry.choreId, day.dayOfWeek, entry)"
                 role="checkbox"
                 :aria-checked="entry.completed"
                 :aria-label="ariaLabelFor(entry)"

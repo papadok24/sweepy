@@ -18,10 +18,13 @@ export default defineNuxtConfig({
     },
   },
   devtools: { enabled: true },
-  // ADR-0005: static rasters via Nuxt Image; build-time/static provider for Workers.
+  // ADR-0005: static rasters via Nuxt Image. Do not force `ipxStatic` —
+  // that emits `/_ipx/...` URLs without a runtime handler unless you
+  // `nuxt generate` and prerender them (Workers use `nuxt build`). Auto
+  // picks IPX on Node (dev/tests) and `none` (public/ passthrough) on
+  // non-Node nitro like Cloudflare Workers — no runtime sharp/IPX there.
   // Lazy loading defaults via <AppImg> (module has no loading option).
   image: {
-    provider: 'ipxStatic',
     format: ['avif', 'webp'],
     quality: 80,
   },

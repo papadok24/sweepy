@@ -392,16 +392,21 @@
   }
 
   /* Celebration */
-  .celebrate {
+  .celebrate,
+  .celebrate--soft {
     position: relative;
   }
 
-  .celebrate::after {
+  .celebrate::after,
+  .celebrate--soft::after {
     content: '';
     position: absolute;
     inset: -0.35rem;
     border-radius: inherit;
     pointer-events: none;
+    /* Rest invisible: the keyframes end at opacity 0, and without this the
+       sparkles would snap back to full opacity once the animation finishes. */
+    opacity: 0;
     box-shadow:
       0.55rem -0.45rem 0 -0.2rem color-mix(in srgb, var(--color-brand) 80%, var(--color-on-accent)),
       -0.5rem -0.55rem 0 -0.22rem color-mix(in srgb, var(--color-secondary) 75%, var(--color-on-accent)),
@@ -411,8 +416,7 @@
   }
 
   .celebrate--soft::after {
-    opacity: 0.45;
-    animation-duration: var(--motion-fast);
+    animation: sweepy-sparkle-soft var(--motion-fast) var(--ease-spring);
   }
 
   @keyframes sweepy-sparkle {
@@ -429,8 +433,24 @@
     }
   }
 
+  /* Soft-stack for rapid repeats: dimmer peak, less travel (design.md). */
+  @keyframes sweepy-sparkle-soft {
+    from {
+      transform: scale(0.5);
+      opacity: 0;
+    }
+    60% {
+      opacity: 0.45;
+    }
+    to {
+      transform: scale(1);
+      opacity: 0;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .celebrate::after {
+    .celebrate::after,
+    .celebrate--soft::after {
       display: none;
     }
   }
@@ -574,7 +594,7 @@
     }
   }
 
-  /* Sweepy mascot placeholder — expressions via modifiers */
+  /* Sweepy mascot — CSS placeholders for expressions; brand lockup uses <AppImg> */
   .sweepy-mascot {
     width: 5.5rem;
     height: 5.5rem;
@@ -586,6 +606,13 @@
     border: 3px solid var(--color-border-control);
     box-shadow: var(--shadow-soft);
     flex-shrink: 0;
+  }
+
+  img.sweepy-mascot {
+    display: block;
+    object-fit: cover;
+    object-position: center;
+    background: var(--color-brand-soft);
   }
 
   .sweepy-mascot--sm {

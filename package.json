@@ -10,6 +10,8 @@
     "postinstall": "nuxt prepare",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:webkit": "vitest run test/e2e/home-shell-webkit.spec.ts --reporter=verbose --disable-console-intercept",
+    "test:webkit:log": "powershell -NoProfile -Command \"Get-Content .data/test/webkit-e2e.log -Wait -Tail 40\"",
     "typecheck": "nuxt typecheck",
     "db:generate": "nuxt db generate",
     "db:migrate": "nuxt db migrate",
