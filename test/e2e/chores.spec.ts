@@ -1,14 +1,10 @@
-import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { $fetch, setup } from '@nuxt/test-utils/e2e'
+import { $fetch } from '@nuxt/test-utils/e2e'
 import type { Chore } from '../helpers/api-types.ts'
+import { setupE2e } from '../helpers/e2e-setup.ts'
 
 describe('chore catalog API', async () => {
-  await setup({
-    rootDir: fileURLToPath(new URL('../..', import.meta.url)),
-    server: true,
-    browser: false,
-  })
+  await setupE2e()
 
   it('creates a chore and lists it among active chores', async () => {
     const created = await $fetch<Chore>('/api/chores', {

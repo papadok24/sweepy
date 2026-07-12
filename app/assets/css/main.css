@@ -273,6 +273,30 @@
     font-size: var(--font-size-sm);
   }
 
+  /* Subtle sync notice (ADR-0006) — not a modal or sticky alarm */
+  .sync-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    background: color-mix(in oklab, var(--color-quiet-soft) 70%, var(--color-surface));
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+  }
+
+  .sync-notice__copy {
+    margin: 0;
+  }
+
+  .sync-notice__dismiss {
+    min-height: 2.5rem;
+    padding-inline: var(--space-3);
+    font-size: var(--font-size-sm);
+  }
+
   /* Today */
   .today-shell {
     display: grid;
@@ -291,6 +315,9 @@
   .chore-list {
     display: grid;
     gap: var(--space-3);
+    /* Rows keep their natural height even when the list is stretched
+       to fill a day bucket (grid default would stretch each row). */
+    align-content: start;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -302,12 +329,16 @@
     gap: var(--space-3);
     padding: var(--space-3) var(--space-4);
     min-height: calc(var(--target-min) + var(--space-2));
+    min-width: 0;
   }
 
   .chore-slot__name {
     flex: 1;
+    min-width: 0;
     font-size: var(--font-size-lg);
     font-weight: 700;
+    overflow-wrap: break-word;
+    hyphens: auto;
   }
 
   /* Completion control */
@@ -408,7 +439,19 @@
     align-items: stretch;
   }
 
-  @container week (min-width: 52rem) {
+  @container week (min-width: 30rem) {
+    .week-board__days {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @container week (min-width: 48rem) {
+    .week-board__days {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  @container week (min-width: 66rem) {
     .week-board__days {
       grid-template-columns: repeat(7, minmax(0, 1fr));
     }
@@ -442,6 +485,23 @@
     color: var(--color-quiet);
   }
 
+  /* Nested in a day bucket, chore slots trade the card treatment for a
+     flat tint — the bucket is the surface (no card-on-card). Mint wash
+     marks completion ("mint means go / done"). */
+  .day-bucket .chore-slot {
+    box-shadow: none;
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-quiet-soft) 35%, var(--color-surface));
+  }
+
+  .day-bucket .chore-slot:has(.completion[aria-checked='true']) {
+    background: color-mix(in srgb, var(--color-accent-soft) 55%, var(--color-surface));
+  }
+
+  .day-bucket--quiet .chore-slot {
+    background: color-mix(in srgb, var(--color-surface) 75%, transparent);
+  }
+
   /* Empty / rest — standalone surfaces use .empty-state.surface;
      nested in a day bucket, the bucket is the surface (no nested card). */
   .empty-state {
@@ -462,10 +522,28 @@
     border-radius: 0;
   }
 
+  /* Narrow day column — tighten density while keeping ≥44px targets. */
   @container day (max-width: 11rem) {
     .day-bucket > .empty-state {
       padding: var(--space-1);
       gap: var(--space-2);
+    }
+
+    .day-bucket .chore-list {
+      gap: var(--space-2);
+    }
+
+    /* Stack the completion above the name so text gets full card width. */
+    .day-bucket .chore-slot {
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2);
+    }
+
+    .day-bucket .chore-slot__name {
+      font-size: var(--font-size-sm);
+      text-align: center;
     }
 
     .day-bucket .sweepy-mascot {

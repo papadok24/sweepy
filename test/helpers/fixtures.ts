@@ -1,12 +1,17 @@
-import { mkdirSync } from 'node:fs'
 import { eq } from 'drizzle-orm'
 import { createClient } from '@libsql/client'
 import { drizzle } from 'drizzle-orm/libsql'
 import { completions } from '../../server/db/schema.ts'
+import {
+  TEST_SQLITE_URL,
+  ensureSqliteDir,
+  resolveSqliteUrl,
+} from './sqlite.ts'
 
 function openLocalDb() {
-  mkdirSync('.data/db', { recursive: true })
-  const client = createClient({ url: 'file:.data/db/sqlite.db' })
+  const url = resolveSqliteUrl(TEST_SQLITE_URL)
+  ensureSqliteDir(url)
+  const client = createClient({ url })
   return { client, db: drizzle(client) }
 }
 

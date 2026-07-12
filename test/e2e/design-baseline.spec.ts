@@ -1,6 +1,7 @@
-import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { createPage, setup } from '@nuxt/test-utils/e2e'
+import { $fetch, createPage } from '@nuxt/test-utils/e2e'
+import type { Chore } from '../helpers/api-types.ts'
+import { setupE2e } from '../helpers/e2e-setup.ts'
 
 /**
  * Seam: design baseline contract (issue #8).
@@ -8,16 +9,23 @@ import { createPage, setup } from '@nuxt/test-utils/e2e'
  * semantic tokens resolve and surface/control hooks are usable.
  */
 describe('design baseline contract', async () => {
-  await setup({
-    rootDir: fileURLToPath(new URL('../..', import.meta.url)),
-    server: true,
-    browser: true,
-  })
+  await setupE2e({ browser: true })
 
   it('loads the app shell with design baseline tokens and recipes', async () => {
+    // Seed one assignment so completion controls exist after local-first wiring (#17).
+    const chore = await $fetch<Chore>('/api/chores', {
+      method: 'POST',
+      body: { name: `Design baseline ${Date.now()}` },
+    })
+    await $fetch(`/api/chores/${chore.id}/assignments`, {
+      method: 'POST',
+      body: { dayOfWeek: 0 },
+    })
+
     const page = await createPage('/')
 
     await page.waitForSelector('[data-design-shell]')
+    await page.waitForSelector('[data-week-ready="true"]')
 
     const designBaselineSnapshot = await page.evaluate(() => {
       const root = getComputedStyle(document.documentElement)

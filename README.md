@@ -58,7 +58,7 @@ NuxtHub creates `.data/db/sqlite.db` automatically and applies migrations on sta
 | --- | --- |
 | `pnpm db:generate` | Generate SQL migrations from `server/db/schema.ts` |
 | `pnpm db:migrate` | Apply pending migrations to the local database |
-| `pnpm db:seed` | Load sample placeholder rows into the local database |
+| `pnpm db:seed` | Wipe local tables and load a fresh development chore set |
 
 After changing the schema:
 
@@ -109,4 +109,4 @@ Expected: JSON including a row with `"label": "prod-smoke"`.
 pnpm test
 ```
 
-Exercises `GET /api/placeholders` end-to-end against the real local SQLite database.
+Exercises APIs and the browser board against an isolated SQLite file under `.data/test/` (not the `.data/db/sqlite.db` used by `pnpm dev`).

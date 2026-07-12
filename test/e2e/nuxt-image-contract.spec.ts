@@ -1,6 +1,6 @@
-import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { createPage, setup } from '@nuxt/test-utils/e2e'
+import { createPage } from '@nuxt/test-utils/e2e'
+import { setupE2e } from '../helpers/e2e-setup.ts'
 
 /**
  * Seam: Nuxt Image static-raster contract (issues #15 / #16).
@@ -9,11 +9,7 @@ import { createPage, setup } from '@nuxt/test-utils/e2e'
  * and project defaults visible in the DOM (e.g. lazy loading).
  */
 describe('Nuxt Image static-raster contract', async () => {
-  await setup({
-    rootDir: fileURLToPath(new URL('../..', import.meta.url)),
-    server: true,
-    browser: true,
-  })
+  await setupE2e({ browser: true })
 
   it('renders a known public/img raster through Nuxt Image with project defaults', async () => {
     const page = await createPage('/')

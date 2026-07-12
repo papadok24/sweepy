@@ -1,7 +1,7 @@
-import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { $fetch, setup } from '@nuxt/test-utils/e2e'
+import { $fetch } from '@nuxt/test-utils/e2e'
 import type { Chore, Completion, WeekView } from '../helpers/api-types.ts'
+import { setupE2e } from '../helpers/e2e-setup.ts'
 import {
   countCompletionsForChore,
   insertCompletion,
@@ -10,11 +10,7 @@ import {
 import { weekStartFor } from '../../server/utils/week.ts'
 
 describe('week view and completions API', async () => {
-  await setup({
-    rootDir: fileURLToPath(new URL('../..', import.meta.url)),
-    server: true,
-    browser: false,
-  })
+  await setupE2e()
 
   async function createChore(name: string) {
     return await $fetch<Chore>('/api/chores', {

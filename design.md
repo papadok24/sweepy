@@ -129,7 +129,7 @@ Fallbacks: OS mute / in-app mute → no audio; no vibrate API / preference off �
 
 ## Quiet Sunday
 
-Day bucket `dayOfWeek === 0` uses `.day-bucket--quiet`: softer tint (`--color-surface-muted` / sky wash), rest-oriented empty copy. Assignments remain allowed — tone, not a product block.
+Day bucket `dayOfWeek === 6` (Sunday; 0 = Monday … 6 = Sunday) uses `.day-bucket--quiet`: softer tint (`--color-surface-muted` / sky wash), rest-oriented empty copy. Assignments remain allowed — tone, not a product block.
 
 ## Mascot (Sweepy)
 
@@ -165,7 +165,7 @@ Placement: brand chrome, empty panels, celebration beats — **never** inside ev
 | Today shell | `.today-shell` | Home surface; lists today’s chore slots |
 | Week board | `.week-board` + `.day-bucket` | Stack → columns by container width |
 | Quiet Sunday | `.day-bucket--quiet` | Softer rest treatment |
-| Chore slot | `.chore-slot.surface` | Soft card row for a chore |
+| Chore slot | `.chore-slot.surface` | Soft card row for a chore; nested in a day bucket it flattens to a quiet tint (mint wash when completed) — no card-on-card |
 | Completion | `.completion.control` | Unchecked / checked (`aria-checked`) |
 | Celebrate | `.celebrate` / `.celebrate--soft` | Motion on successful check |
 | Celebrate beat | `.celebrate-beat` + `.sweepy-mascot--cheer` | Mascot cheer moment (not every row) |
