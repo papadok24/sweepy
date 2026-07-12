@@ -5,15 +5,27 @@ import { readZodBody } from '../../utils/validate'
 
 export default eventHandler(async (event): Promise<Chore> => {
   const body = await readZodBody(event, createChoreBody)
+  const days = body.days ? [...new Set(body.days)] : []
 
-  const [chore] = await db.insert(schema.chores).values({
-    name: body.name,
-    notes: body.notes ?? null,
-  }).returning()
+  return await db.transaction(async (tx) => {
+    const [chore] = await tx.insert(schema.chores).values({
+      name: body.name,
+      notes: body.notes ?? null,
+    }).returning()
 
-  if (!chore) {
-    throw createError({ statusCode: 500, statusMessage: 'Failed to create chore' })
-  }
+    if (!chore) {
+      throw createError({ statusCode: 500, statusMessage: 'Failed to create chore' })
+    }
 
-  return chore
+    if (days.length > 0) {
+      await tx.insert(schema.choreAssignments).values(
+        days.map(dayOfWeek => ({
+          choreId: chore.id,
+          dayOfWeek,
+        })),
+      )
+    }
+
+    return chore
+  })
 })

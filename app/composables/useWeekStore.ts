@@ -147,9 +147,14 @@ export function useWeekStore() {
       }
     }
     catch {
-      week.value = null
+      week.value = undefined
       hydrateError.value = 'Couldn’t load this week. Try again.'
     }
+  }
+
+  /** Non-optimistic board refresh after create/edit (not completion toggles). */
+  async function refreshWeek() {
+    await rehydrateFromServer()
   }
 
   return {
@@ -160,6 +165,7 @@ export function useWeekStore() {
     pending,
     toggleCompletion,
     retryHydrate,
+    refreshWeek,
     dismissSyncNotice,
   }
 }

@@ -12,10 +12,91 @@ const {
   pending,
   toggleCompletion,
   retryHydrate,
+  refreshWeek,
   dismissSyncNotice,
 } = useWeekStore()
 
 const todayLabel = computed(() => dayLabels[todayIndex.value] ?? 'Today')
+
+/** Add-chore bottom drawer (issue #27) — await-and-refresh, not optimistic. */
+const drawerRef = ref<HTMLDialogElement | null>(null)
+const addChoreOpenBtn = ref<HTMLButtonElement | null>(null)
+const choreName = ref('')
+const choreNotes = ref('')
+const selectedDays = ref<number[]>([])
+const formError = ref<string | null>(null)
+const saving = ref(false)
+
+function resetAddChoreForm() {
+  choreName.value = ''
+  choreNotes.value = ''
+  selectedDays.value = []
+  formError.value = null
+  saving.value = false
+}
+
+function openAddChore() {
+  resetAddChoreForm()
+  drawerRef.value?.showModal()
+}
+
+function closeAddChore() {
+  drawerRef.value?.close()
+}
+
+function onDrawerClose() {
+  resetAddChoreForm()
+  addChoreOpenBtn.value?.focus()
+}
+
+function onDrawerClick(event: MouseEvent) {
+  if (event.target === drawerRef.value) closeAddChore()
+}
+
+function toggleDay(day: number) {
+  const next = new Set(selectedDays.value)
+  if (next.has(day)) next.delete(day)
+  else next.add(day)
+  selectedDays.value = [...next].sort((a, b) => a - b)
+}
+
+function isDaySelected(day: number) {
+  return selectedDays.value.includes(day)
+}
+
+async function submitAddChore() {
+  const name = choreName.value.trim()
+  if (!name) {
+    formError.value = 'Enter a chore name.'
+    return
+  }
+  if (selectedDays.value.length === 0) {
+    formError.value = 'Pick at least one day.'
+    return
+  }
+
+  formError.value = null
+  saving.value = true
+  try {
+    const notes = choreNotes.value.trim()
+    await $fetch('/api/chores', {
+      method: 'POST',
+      body: {
+        name,
+        ...(notes ? { notes } : {}),
+        days: selectedDays.value,
+      },
+    })
+    await refreshWeek()
+    closeAddChore()
+  }
+  catch {
+    formError.value = 'Couldn’t save that chore. Try again.'
+  }
+  finally {
+    saving.value = false
+  }
+}
 
 /**
  * One-shot celebration state (design.md "Delight with kindness"):
@@ -49,7 +130,7 @@ const todayAssignments = computed(() => {
   return week.value.days.find(d => d.dayOfWeek === todayIndex.value)?.assignments ?? []
 })
 
-const canToggle = computed(() => week.value !== null && !hydrateError.value)
+const canToggle = computed(() => Boolean(week.value) && !hydrateError.value)
 
 function completionKey(choreId: number, dayOfWeek: number) {
   return `${choreId}:${dayOfWeek}`
@@ -117,6 +198,16 @@ function onToggle(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
         <Icon name="mingcute:calendar-week-line" aria-hidden="true" />
         Week
       </a>
+      <button
+        ref="addChoreOpenBtn"
+        type="button"
+        class="btn control btn--secondary"
+        data-add-chore-open
+        @click="openAddChore"
+      >
+        <Icon name="mingcute:add-line" aria-hidden="true" />
+        Add chore
+      </button>
     </nav>
 
     <div
@@ -226,22 +317,101 @@ function onToggle(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
           />
           <p class="celebrate-beat__copy">Nice — chore complete!</p>
         </div>
-
-        <form class="chore-list" @submit.prevent>
-          <label class="sr-only" for="chore-name">Chore name</label>
-          <input
-            id="chore-name"
-            class="field control"
-            name="name"
-            type="text"
-            placeholder="Add a chore name"
-          >
-          <button type="submit" class="btn control btn--primary">
-            Save chore
-          </button>
-        </form>
       </template>
     </section>
+
+    <dialog
+      ref="drawerRef"
+      class="add-chore-drawer"
+      data-add-chore-drawer
+      aria-labelledby="add-chore-heading"
+      @close="onDrawerClose"
+      @click="onDrawerClick"
+    >
+      <form
+        class="add-chore-drawer__panel surface"
+        @submit.prevent="submitAddChore"
+      >
+        <div class="add-chore-drawer__header">
+          <h2 id="add-chore-heading">Add chore</h2>
+          <button
+            type="button"
+            class="btn control btn--secondary"
+            data-add-chore-close
+            aria-label="Close add chore"
+            @click="closeAddChore"
+          >
+            Close
+          </button>
+        </div>
+
+        <label class="add-chore-drawer__label" for="add-chore-name">Name</label>
+        <input
+          id="add-chore-name"
+          v-model="choreName"
+          class="field control"
+          data-add-chore-name
+          name="name"
+          type="text"
+          autocomplete="off"
+          placeholder="e.g. Dishes"
+          :disabled="saving"
+        >
+
+        <label class="add-chore-drawer__label" for="add-chore-notes">Notes (optional)</label>
+        <input
+          id="add-chore-notes"
+          v-model="choreNotes"
+          class="field control"
+          data-add-chore-notes
+          name="notes"
+          type="text"
+          autocomplete="off"
+          placeholder="e.g. use the wood cleaner"
+          :disabled="saving"
+        >
+
+        <p class="add-chore-drawer__label" id="add-chore-days-label">Days</p>
+        <div
+          class="add-chore-drawer__days"
+          role="group"
+          aria-labelledby="add-chore-days-label"
+        >
+          <button
+            v-for="(label, day) in dayLabels"
+            :key="day"
+            type="button"
+            class="btn control add-chore-day"
+            :class="{ 'add-chore-day--selected': isDaySelected(day) }"
+            :data-add-chore-day="day"
+            :aria-pressed="isDaySelected(day)"
+            :disabled="saving"
+            @click="toggleDay(day)"
+          >
+            {{ label }}
+          </button>
+        </div>
+
+        <p
+          v-if="formError"
+          class="add-chore-drawer__error"
+          data-add-chore-error
+          role="alert"
+        >
+          {{ formError }}
+        </p>
+
+        <button
+          type="submit"
+          class="btn control btn--primary"
+          data-add-chore-submit
+          :disabled="saving"
+          :aria-busy="saving"
+        >
+          {{ saving ? 'Saving…' : 'Save chore' }}
+        </button>
+      </form>
+    </dialog>
 
     <section id="week" class="week-board surface" aria-labelledby="week-heading">
       <h2 id="week-heading">Week</h2>

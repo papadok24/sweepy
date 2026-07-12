@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { $fetch, createPage } from '@nuxt/test-utils/e2e'
-import type { Chore } from '../helpers/api-types.ts'
+import type { Chore, WeekView } from '../helpers/api-types.ts'
 import { setupE2e } from '../helpers/e2e-setup.ts'
 
 /**
@@ -12,7 +12,7 @@ describe('design baseline contract', async () => {
   await setupE2e({ browser: true })
 
   it('loads the app shell with design baseline tokens and recipes', async () => {
-    // Seed one assignment so completion controls exist after local-first wiring (#17).
+    // Seed one Monday assignment so completion controls exist (#17).
     const chore = await $fetch<Chore>('/api/chores', {
       method: 'POST',
       body: { name: `Design baseline ${Date.now()}` },
@@ -22,10 +22,22 @@ describe('design baseline contract', async () => {
       body: { dayOfWeek: 0 },
     })
 
+    // Shared test DB can accumulate assignments; clear Tuesday so a nested
+    // empty-state recipe is guaranteed for the snapshot.
+    const weekBefore = await $fetch<WeekView>('/api/week')
+    const tuesday = weekBefore.days.find(d => d.dayOfWeek === 1)
+    for (const entry of tuesday?.assignments ?? []) {
+      await $fetch(`/api/chores/${entry.choreId}/assignments/1`, { method: 'DELETE' })
+    }
+
     const page = await createPage('/')
 
     await page.waitForSelector('[data-design-shell]')
     await page.waitForSelector('[data-week-ready="true"]')
+    // Field recipe lives in the add-chore drawer; open it so computed styles resolve
+    // (closed <dialog> is display:none and reports 0 border / height).
+    await page.click('[data-add-chore-open]')
+    await page.waitForSelector('[data-add-chore-drawer][open]')
 
     const designBaselineSnapshot = await page.evaluate(() => {
       const root = getComputedStyle(document.documentElement)
