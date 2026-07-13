@@ -36,6 +36,9 @@ export default defineNuxtConfig({
     // Keep invocation metadata in Workers Logs; skip storing console/custom logs.
     cloudflare: {
       wrangler: {
+        // Stable production Worker name (ADR 0009). Cutover from any
+        // auto-generated name is a one-time human checklist in the README.
+        name: 'sweepy',
         observability: {
           logs: {
             enabled: false,

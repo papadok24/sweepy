@@ -99,3 +99,10 @@ Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-
 ### Domain docs
 
 Single-context layout — root `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.
+
+### Production deploy
+
+- Always `pnpm run deploy` (never bare `pnpm deploy`). Worker name is pinned to `sweepy`.
+- CI on `main` / `workflow_dispatch` runs the same script after tests; PRs never deploy (ADR 0009).
+- GitHub secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID`. Runtime secrets (e.g. `NUXT_HOUSEHOLD_TIMEZONE`) stay on the Worker.
+- Cutover checklist: `docs/checklists/production-cutover.md`. Operator detail: README “Production deploy”.

@@ -6,6 +6,10 @@
  * a CLOUDFLARE_D1_DATABASE_ID in `.env` will not affect local `pnpm dev`.
  *
  * Use `pnpm run deploy` — plain `pnpm deploy` is a reserved pnpm workspace command.
+ *
+ * In CI (GitHub Actions sets `CI=true`), also requires CLOUDFLARE_API_TOKEN and
+ * CLOUDFLARE_ACCOUNT_ID. Local interactive deploys can use `wrangler login` instead.
+ * Wrangler skips the migration confirmation prompt in non-interactive / CI shells.
  */
 import { spawnSync } from 'node:child_process'
 import { readFileSync, existsSync } from 'node:fs'
@@ -34,9 +38,23 @@ function loadDotEnv() {
 
 loadDotEnv()
 
-if (!process.env.CLOUDFLARE_D1_DATABASE_ID) {
-  console.error('CLOUDFLARE_D1_DATABASE_ID is required for production deploy.')
-  console.error('Set it after: pnpm exec wrangler d1 create sweepy')
+const required = process.env.CI
+  ? ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_D1_DATABASE_ID']
+  : ['CLOUDFLARE_D1_DATABASE_ID']
+
+const missing = required.filter((key) => !process.env[key])
+if (missing.length > 0) {
+  for (const key of missing) {
+    console.error(`${key} is required for production deploy.`)
+  }
+  if (missing.includes('CLOUDFLARE_D1_DATABASE_ID')) {
+    console.error('Set it after: pnpm exec wrangler d1 create sweepy')
+  }
+  if (process.env.CI) {
+    console.error(
+      'In GitHub Actions, set repository secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID.',
+    )
+  }
   process.exit(1)
 }
 
@@ -58,6 +76,9 @@ function run(command, args) {
   }
 }
 
+console.log('→ Build (Cloudflare / D1)')
 run('pnpm', ['exec', 'nuxt', 'build'])
+console.log('→ Apply remote D1 migrations')
 run('pnpm', ['exec', 'wrangler', 'd1', 'migrations', 'apply', 'DB', '--remote', '--config', wranglerConfig])
+console.log('→ Deploy Worker')
 run('pnpm', ['exec', 'wrangler', 'deploy', '--config', wranglerConfig])

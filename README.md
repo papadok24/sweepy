@@ -69,7 +69,7 @@ pnpm db:migrate
 
 ## Production deploy
 
-One atomic command — build (with D1 bindings), apply D1 migrations, then deploy. If the database ID is missing or migrations fail, deploy does not run:
+One atomic command — build (with D1 bindings), apply D1 migrations, then deploy the Worker named `sweepy`. If the database ID is missing or migrations fail, deploy does not run:
 
 ```powershell
 # If not already in .env:
@@ -77,6 +77,28 @@ $env:CLOUDFLARE_D1_DATABASE_ID = "<database-id>"
 # Must be `pnpm run deploy` — bare `pnpm deploy` is a reserved pnpm command.
 pnpm run deploy
 ```
+
+Local interactive runs still prompt before applying remote D1 migrations. In GitHub Actions (non-interactive / `CI=true`), Wrangler skips that confirmation; the same script aborts the job if migrations fail.
+
+### GitHub Actions (unattended)
+
+After CI tests pass on `main`, Actions runs `pnpm run deploy` (also triggerable via **workflow_dispatch**). Pull requests never deploy. Required **repository secrets**:
+
+| Secret | Purpose |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | API token scoped to Workers + D1 (not an unbounded account key) |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account id |
+| `CLOUDFLARE_D1_DATABASE_ID` | Production D1 database id |
+
+Runtime config such as `NUXT_HOUSEHOLD_TIMEZONE` stays a **Worker secret** (not a GitHub secret):
+
+```powershell
+pnpm exec wrangler secret put NUXT_HOUSEHOLD_TIMEZONE --name sweepy
+```
+
+Do not auto-seed production chores as part of deploy — seeding remains a conscious local action (`pnpm db:seed` against local SQLite only).
+
+**First-time cutover** (pin `sweepy`, set secrets, smoke-check, enable Actions, retire the old Worker): see [`docs/checklists/production-cutover.md`](docs/checklists/production-cutover.md). Decision record: [ADR 0009](docs/adr/0009-ci-deploy-atomic-d1-migrations.md).
 
 ## Verify the plumbing
 
@@ -92,14 +114,14 @@ Expected: a JSON array of rows with `id`, `label`, and `createdAt` (e.g. labels 
 
 ### Production
 
-After `pnpm run deploy`, open the worker URL wrangler prints, then:
+After `pnpm run deploy` (Worker `sweepy`), open `https://sweepy.<account>.workers.dev`, then:
 
 1. In the [Cloudflare D1 console](https://dash.cloudflare.com/), run:
    `INSERT INTO placeholders (label, created_at) VALUES ('prod-smoke', unixepoch() * 1000);`
 2. Hit the endpoint:
 
 ```powershell
-Invoke-RestMethod https://<your-worker>.workers.dev/api/placeholders
+Invoke-RestMethod https://sweepy.<account>.workers.dev/api/placeholders
 ```
 
 Expected: JSON including a row with `"label": "prod-smoke"`.

@@ -15,7 +15,7 @@ import { assertValidTimeZone } from './timezone'
  *      betterAuthSecret: z.string().min(32)
  * 3. Provide the value (note the NUXT_ prefix):
  *      - local: `NUXT_BETTER_AUTH_SECRET=...` in `.env`
- *      - production: `pnpm exec wrangler secret put NUXT_BETTER_AUTH_SECRET`
+ *      - production: `pnpm exec wrangler secret put NUXT_BETTER_AUTH_SECRET --name sweepy`
  * 4. Read it in server code: `useEnv(event).betterAuthSecret`
  *
  * Client-exposed values go under `runtimeConfig.public` and are NOT

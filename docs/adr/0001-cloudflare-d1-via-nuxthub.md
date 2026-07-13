@@ -10,6 +10,6 @@ Sweepy needs a SQLite database with painless local development on Windows and a 
 
 ## Consequences
 
-- Deploys are manual from the developer's machine via a single atomic pnpm script: build → apply D1 migrations → `wrangler deploy`. Cloudflare Workers Builds does **not** auto-apply D1 migrations, which is why the migration step lives in the deploy script.
+- Production deploys use a single atomic pnpm script: build → apply D1 migrations → `wrangler deploy`. Cloudflare Workers Builds does **not** auto-apply D1 migrations, which is why the migration step lives in the deploy script. ADR 0009 adds GitHub Actions on `main` (and `workflow_dispatch`) invoking that same script; local `pnpm run deploy` remains valid for cutover and emergencies.
 - Two environments only: local (`.data/` SQLite file, inspectable with any SQLite browser) and production (D1). No preview environment.
 - Seeding local data is done via a `pnpm db:seed` script.
