@@ -11,17 +11,29 @@ export default eventHandler(async (event): Promise<{ ok: true }> => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid day of week' })
   }
 
-  const deleted = await db
+  const assignments = await db
+    .select({ dayOfWeek: schema.choreAssignments.dayOfWeek })
+    .from(schema.choreAssignments)
+    .where(eq(schema.choreAssignments.choreId, choreId))
+
+  const match = assignments.find(a => a.dayOfWeek === dayResult.data)
+  if (!match) {
+    throw createError({ statusCode: 404, statusMessage: 'Assignment not found' })
+  }
+
+  if (assignments.length <= 1) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'Chore must keep at least one day assignment',
+    })
+  }
+
+  await db
     .delete(schema.choreAssignments)
     .where(and(
       eq(schema.choreAssignments.choreId, choreId),
       eq(schema.choreAssignments.dayOfWeek, dayResult.data),
     ))
-    .returning()
-
-  if (deleted.length === 0) {
-    throw createError({ statusCode: 404, statusMessage: 'Assignment not found' })
-  }
 
   return { ok: true }
 })

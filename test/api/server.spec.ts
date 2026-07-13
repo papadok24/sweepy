@@ -264,6 +264,24 @@ describe('API server', async () => {
       ).rejects.toMatchObject({ statusCode: 409 })
     })
 
+    it('refuses deleting the last assignment for a chore', async () => {
+      const chore = await createChore('Only Monday')
+
+      await $fetch(`/api/chores/${chore.id}/assignments`, {
+        method: 'POST',
+        body: { dayOfWeek: 0 },
+      })
+
+      await expect(
+        $fetch(`/api/chores/${chore.id}/assignments/0`, {
+          method: 'DELETE',
+        }),
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        statusMessage: 'Chore must keep at least one day assignment',
+      })
+    })
+
     it('rejects invalid dayOfWeek values', async () => {
       const chore = await createChore('Windows')
 
@@ -408,6 +426,7 @@ describe('API server', async () => {
     it('keeps completion history after assignment removal', async () => {
       const chore = await createChore('Trash')
       await assign(chore.id, 4)
+      await assign(chore.id, 5)
 
       await $fetch('/api/completions', {
         method: 'POST',
