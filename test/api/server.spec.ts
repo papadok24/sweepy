@@ -9,6 +9,7 @@ import {
   countCompletionsForChore,
   insertCompletion,
   previousWeekStart,
+  upsertHouseholdTimezone,
 } from '../helpers/fixtures.ts'
 import {
   DEV_SQLITE_URL,
@@ -318,6 +319,33 @@ describe('API server', async () => {
       expect(findAssignment(week, chore.id, 3)).toEqual(
         expect.objectContaining({ choreId: chore.id, completed: false }),
       )
+    })
+
+    it('uses the DB household timezone even when env disagrees', async () => {
+      // Env / test harness seed America/Chicago; DB wins once a row exists.
+      const dbZone = 'Asia/Tokyo'
+      await upsertHouseholdTimezone(dbZone)
+
+      const week = await $fetch<WeekView>('/api/week')
+      const fromDb = weekClockAt(new Date(), dbZone)
+      const fromEnv = weekClockAt(new Date(), TEST_HOUSEHOLD_TIMEZONE)
+
+      expect(week.weekStart).toBe(fromDb.weekStart)
+      expect(week.todayDayOfWeek).toBe(fromDb.todayDayOfWeek)
+      if (
+        fromDb.weekStart !== fromEnv.weekStart
+        || fromDb.todayDayOfWeek !== fromEnv.todayDayOfWeek
+      ) {
+        expect(week).not.toEqual(
+          expect.objectContaining({
+            weekStart: fromEnv.weekStart,
+            todayDayOfWeek: fromEnv.todayDayOfWeek,
+          }),
+        )
+      }
+
+      // Restore harness default so later tests keep Chicago.
+      await upsertHouseholdTimezone(TEST_HOUSEHOLD_TIMEZONE)
     })
 
     it('completes an assignment for the current week and rejects a second completion', async () => {

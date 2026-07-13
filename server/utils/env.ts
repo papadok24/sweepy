@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { H3Event } from 'h3'
-import { assertValidTimeZone } from './week'
+import { assertValidTimeZone } from './timezone'
 
 /**
  * Typed, validated access to runtime configuration. This is the only door
@@ -21,11 +21,17 @@ import { assertValidTimeZone } from './week'
  * Client-exposed values go under `runtimeConfig.public` and are NOT
  * validated here — they are visible to browsers and must never be secrets.
  */
+
+/**
+ * Seed value for household settings when no DB row exists yet.
+ * Empty is allowed so a DB-owned timezone can boot without env (ADR 0008).
+ * Non-empty values must be valid IANA zones.
+ */
 export const householdTimezoneSchema = z
   .string()
   .trim()
-  .min(1, 'householdTimezone is required')
   .superRefine((value, ctx) => {
+    if (!value) return
     try {
       assertValidTimeZone(value)
     }
@@ -38,8 +44,8 @@ export const householdTimezoneSchema = z
   })
 
 export const envSchema = z.object({
-  /** IANA zone used to seed household settings when no DB row exists yet. */
-  householdTimezone: householdTimezoneSchema,
+  /** IANA zone used only to seed household settings when no DB row exists. */
+  householdTimezone: householdTimezoneSchema.default(''),
 })
 
 export type Env = z.output<typeof envSchema>

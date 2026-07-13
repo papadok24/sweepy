@@ -3,7 +3,6 @@ import { setup } from '@nuxt/test-utils/e2e'
 import {
   SQLITE_URL_ENV,
   TEST_HUB_DIR,
-  TEST_SQLITE_URL,
 } from './sqlite.ts'
 
 export type E2eBrowserType = 'chromium' | 'firefox' | 'webkit'
@@ -17,12 +16,29 @@ export const TEST_HOUSEHOLD_TIMEZONE = 'America/Chicago'
  *
  * When `browser: true`, defaults to WebKit (ADR 0007 iOS Safari support bar).
  * CI installs WebKit only — Chromium is not used in CI.
+ *
+ * Pass `frozenNow` (ISO instant) to freeze server Week math via SWEEPY_TEST_NOW.
+ * Pass `hubDir` to isolate a suite from the shared `.data/test` SQLite file.
  */
 export async function setupE2e(
-  options: { browser?: boolean, browserType?: E2eBrowserType } = {},
+  options: {
+    browser?: boolean
+    browserType?: E2eBrowserType
+    frozenNow?: string
+    hubDir?: string
+  } = {},
 ) {
-  process.env[SQLITE_URL_ENV] = TEST_SQLITE_URL
+  const hubDir = options.hubDir ?? TEST_HUB_DIR
+  const sqliteUrl = `file:${hubDir}/db/sqlite.db`
+
+  process.env[SQLITE_URL_ENV] = sqliteUrl
   process.env.NUXT_HOUSEHOLD_TIMEZONE = TEST_HOUSEHOLD_TIMEZONE
+  if (options.frozenNow) {
+    process.env.SWEEPY_TEST_NOW = options.frozenNow
+  }
+  else {
+    delete process.env.SWEEPY_TEST_NOW
+  }
 
   const browser = options.browser ?? false
 
@@ -35,7 +51,7 @@ export async function setupE2e(
       : undefined,
     nuxtConfig: {
       hub: {
-        dir: TEST_HUB_DIR,
+        dir: hubDir,
       },
       runtimeConfig: {
         householdTimezone: TEST_HOUSEHOLD_TIMEZONE,

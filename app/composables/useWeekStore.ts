@@ -39,7 +39,8 @@ export function useWeekStore() {
     refresh,
   } = useAsyncData('week-view', () => $fetch<WeekView>('/api/week'))
 
-  const todayIndex = computed(() => week.value?.todayDayOfWeek ?? 0)
+  /** Household today from Week payload only — undefined until week hydrates. */
+  const todayIndex = computed(() => week.value?.todayDayOfWeek)
 
   let noticeTimer: ReturnType<typeof setTimeout> | undefined
 

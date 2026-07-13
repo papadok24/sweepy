@@ -1,16 +1,17 @@
 import { eq } from 'drizzle-orm'
 import type { H3Event } from 'h3'
 import { db, schema } from 'hub:db'
+import { serverNow } from './clock'
 import { useEnv } from './env'
-import { assertValidTimeZone, weekClockAt, type WeekClock } from './week'
 import { isUniqueViolation } from './db-errors'
+import { weekClockAt, type WeekClock } from './week'
 
 const SETTINGS_ROW_ID = 1
 
 /**
- * Resolve the household IANA timezone. If no settings row exists yet, seed
- * once from validated `householdTimezone` runtime config, then treat the DB as
- * authoritative. Fail closed — never invent UTC.
+ * Resolve the household IANA timezone. DB row wins when present. If missing,
+ * seed once from `NUXT_HOUSEHOLD_TIMEZONE`. Fail closed only when both are
+ * absent — never invent UTC (ADR 0008).
  */
 export async function resolveHouseholdTimezone(event?: H3Event): Promise<string> {
   const existing = await db
@@ -23,7 +24,14 @@ export async function resolveHouseholdTimezone(event?: H3Event): Promise<string>
     return existing.timezone
   }
 
-  const timezone = assertValidTimeZone(useEnv(event).householdTimezone)
+  const timezone = useEnv(event).householdTimezone
+  if (!timezone) {
+    throw createError({
+      statusCode: 500,
+      statusMessage:
+        'Household timezone is not configured (missing settings row and NUXT_HOUSEHOLD_TIMEZONE)',
+    })
+  }
 
   try {
     await db.insert(schema.householdSettings).values({
@@ -47,7 +55,7 @@ export async function resolveHouseholdTimezone(event?: H3Event): Promise<string>
 /** Current Week identity + household today from settings timezone. */
 export async function currentWeekClock(
   event?: H3Event,
-  instant: Date = new Date(),
+  instant: Date = serverNow(),
 ): Promise<WeekClock> {
   const timeZone = await resolveHouseholdTimezone(event)
   return weekClockAt(instant, timeZone)

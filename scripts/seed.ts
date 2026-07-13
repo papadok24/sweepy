@@ -8,7 +8,8 @@ import {
   householdSettings,
   placeholders,
 } from '../server/db/schema.ts'
-import { weekClockAt, assertValidTimeZone } from '../server/utils/week.ts'
+import { assertValidTimeZone } from '../server/utils/timezone.ts'
+import { weekClockAt } from '../server/utils/week.ts'
 import {
   DEV_SQLITE_URL,
   ensureSqliteDir,

@@ -1,6 +1,6 @@
 # Household timezone owns Week boundaries
 
-Week identity and “today” on the shared board are defined by a single **household timezone** (IANA), not UTC, not the browser, and not a future logged-in member. Completions stay keyed by `weekStart` (that Week’s Monday date); the server alone derives current `weekStart` and household `todayDayOfWeek` at local Monday 00:00 civil time in that zone. The timezone is stored in a single-row household settings record, seeded once from required `HOUSEHOLD_TIMEZONE` env when missing, then DB-owned; changing it does not rewrite existing Completions. The Week API returns household “today” so the client never invents calendar day for markup (device snap removed).
+Week identity and “today” on the shared board are defined by a single **household timezone** (IANA), not UTC, not the browser, and not a future logged-in member. Completions stay keyed by `weekStart` (that Week’s Monday date); the server alone derives current `weekStart` and household `todayDayOfWeek` at local Monday 00:00 civil time in that zone. The timezone is stored in a single-row household settings record, seeded once from `NUXT_HOUSEHOLD_TIMEZONE` when missing, then DB-owned; changing it does not rewrite existing Completions. The Week API returns household “today” so the client never invents calendar day for markup (device snap removed).
 
 ## Considered Options
 
@@ -11,5 +11,5 @@ Week identity and “today” on the shared board are defined by a single **hous
 ## Consequences
 
 - `GET /api/week` gains household `todayDayOfWeek`; completion write paths keep server-derived `weekStart`.
-- Missing settings row and missing env is an error — no silent UTC fallback.
+- Missing settings row **and** missing/empty `NUXT_HOUSEHOLD_TIMEZONE` is an error — no silent UTC fallback. Once a settings row exists, the DB wins even if env is unset.
 - ADR 0006’s post-mount device-local today realignment is superseded for the shared board.

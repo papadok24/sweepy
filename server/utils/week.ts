@@ -2,10 +2,10 @@
  * Monday-start week helpers. Weeks run Monday–Sunday; day buckets use
  * 0 = Monday … 6 = Sunday.
  *
- * Prefer `weekClockAt(instant, timeZone)` for household Week identity.
- * `weekStartFor` remains a host-local adapter for call sites not yet
- * wired to household settings.
+ * Use `weekClockAt(instant, timeZone)` for household Week identity (ADR 0008).
  */
+
+import { assertValidTimeZone } from './timezone'
 
 export type WeekClock = {
   /** ISO date (YYYY-MM-DD) of the Monday that begins the Week. */
@@ -24,31 +24,10 @@ const WEEKDAY_TO_MON0: Record<string, number> = {
   Sun: 6,
 }
 
-/** Reject blank / non-IANA zone ids. Uses Intl (no silent UTC fallback). */
-export function assertValidTimeZone(timeZone: string): string {
-  if (!timeZone.trim()) {
-    throw new Error('Invalid timezone: value must be a non-empty IANA zone')
-  }
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone }).format(new Date())
-  }
-  catch {
-    throw new Error(`Invalid timezone: ${timeZone} is not a recognized IANA zone`)
-  }
-  return timeZone
-}
-
 function formatIsoDateUtc(year: number, month: number, day: number): string {
   const m = String(month).padStart(2, '0')
   const d = String(day).padStart(2, '0')
   return `${year}-${m}-${d}`
-}
-
-function formatIsoDateLocal(date: Date): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
 }
 
 /**
@@ -109,13 +88,4 @@ export function weekClockAt(instant: Date, timeZone: string): WeekClock {
     ),
     todayDayOfWeek,
   }
-}
-
-/** ISO date (YYYY-MM-DD) of the Monday that begins `date`'s host-local week. */
-export function weekStartFor(date: Date = new Date()): string {
-  const local = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-  const day = local.getDay() // 0 = Sunday … 6 = Saturday
-  const mondayOffset = day === 0 ? -6 : 1 - day
-  local.setDate(local.getDate() + mondayOffset)
-  return formatIsoDateLocal(local)
 }

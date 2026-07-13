@@ -33,14 +33,11 @@ describe('envSchema householdTimezone', () => {
     })
   })
 
-  it('rejects missing householdTimezone', () => {
-    expect(() => parseEnv(envSchema, {})).toThrowError(/householdTimezone/)
-  })
-
-  it('rejects blank householdTimezone', () => {
-    expect(() => parseEnv(envSchema, { householdTimezone: '   ' })).toThrowError(
-      /householdTimezone/,
-    )
+  it('allows missing or blank householdTimezone (DB may already own the zone)', () => {
+    expect(parseEnv(envSchema, {})).toEqual({ householdTimezone: '' })
+    expect(parseEnv(envSchema, { householdTimezone: '   ' })).toEqual({
+      householdTimezone: '',
+    })
   })
 
   it('rejects an invalid IANA timezone', () => {
