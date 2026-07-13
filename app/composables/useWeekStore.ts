@@ -13,33 +13,24 @@ export type WeekDay = {
 
 export type WeekView = {
   weekStart: string
+  /** Household “today” (0 = Monday … 6 = Sunday) from GET /api/week. */
+  todayDayOfWeek: number
   days: WeekDay[]
 }
-
-/** API day-of-week: 0 = Monday … 6 = Sunday. */
-export function apiDayOfWeek(date = new Date()): number {
-  return (date.getDay() + 6) % 7
-}
-
-const SYNC_NOTICE_MS = 4000
 
 /**
  * Local-first this-week store (ADR-0006).
  * Hydrate once from GET /api/week; optimistic completion toggles;
  * failed writes rehydrate and set a subtle sync notice.
  *
- * SSR notes (see ADR-0006 “Hydration”):
+ * SSR notes (see ADR-0006 “Hydration” + ADR 0008):
  * - `week` is the `useAsyncData` payload itself (no mirrored useState).
- * - `todayIndex` is a `useState` seeded on the server so first client paint
- *   matches SSR HTML; after mount we realign to the browser clock.
+ * - Household “today” comes from `week.todayDayOfWeek` — never browser Date
+ *   for shared-board markup (device snap removed).
  */
 export function useWeekStore() {
   const syncNotice = useState<string | null>('week-sync-notice', () => null)
   const hydrateError = useState<string | null>('week-hydrate-error', () => null)
-
-  // Seeded during SSR and serialized in the payload — do not call
-  // apiDayOfWeek() ad hoc in setup for DOM branching (timezone mismatch).
-  const todayIndex = useState('week-today-index', () => apiDayOfWeek())
 
   const {
     data: week,
@@ -47,6 +38,8 @@ export function useWeekStore() {
     error,
     refresh,
   } = useAsyncData('week-view', () => $fetch<WeekView>('/api/week'))
+
+  const todayIndex = computed(() => week.value?.todayDayOfWeek ?? 0)
 
   let noticeTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -67,13 +60,6 @@ export function useWeekStore() {
     },
     { immediate: true },
   )
-
-  // After hydration is safe, prefer the device-local “today”.
-  if (import.meta.client) {
-    onMounted(() => {
-      todayIndex.value = apiDayOfWeek()
-    })
-  }
 
   function dismissSyncNotice() {
     syncNotice.value = null
@@ -169,3 +155,5 @@ export function useWeekStore() {
     dismissSyncNotice,
   }
 }
+
+const SYNC_NOTICE_MS = 4000

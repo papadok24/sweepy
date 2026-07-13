@@ -2,9 +2,9 @@ import { createClient } from '@libsql/client'
 import { describe, expect, it } from 'vitest'
 import { $fetch } from '@nuxt/test-utils/e2e'
 import { seedPlaceholders } from '../../scripts/seed.ts'
-import { weekStartFor } from '../../server/utils/week.ts'
+import { weekClockAt } from '../../server/utils/week.ts'
 import type { Assignment, Chore, Completion, WeekView } from '../helpers/api-types.ts'
-import { setupE2e } from '../helpers/e2e-setup.ts'
+import { setupE2e, TEST_HOUSEHOLD_TIMEZONE } from '../helpers/e2e-setup.ts'
 import {
   countCompletionsForChore,
   insertCompletion,
@@ -302,8 +302,10 @@ describe('API server', async () => {
       await assign(chore.id, 3)
 
       const week = await $fetch<WeekView>('/api/week')
+      const expected = weekClockAt(new Date(), TEST_HOUSEHOLD_TIMEZONE)
 
-      expect(week.weekStart).toBe(weekStartFor())
+      expect(week.weekStart).toBe(expected.weekStart)
+      expect(week.todayDayOfWeek).toBe(expected.todayDayOfWeek)
       expect(week.days).toHaveLength(7)
       expect(findAssignment(week, chore.id, 0)).toEqual(
         expect.objectContaining({
@@ -331,7 +333,7 @@ describe('API server', async () => {
         expect.objectContaining({
           choreId: chore.id,
           dayOfWeek: 1,
-          weekStart: weekStartFor(),
+          weekStart: weekClockAt(new Date(), TEST_HOUSEHOLD_TIMEZONE).weekStart,
           completedAt: expect.any(Number),
         }),
       )
@@ -421,7 +423,9 @@ describe('API server', async () => {
       await insertCompletion({
         choreId: chore.id,
         dayOfWeek: 0,
-        weekStart: previousWeekStart(weekStartFor()),
+        weekStart: previousWeekStart(
+          weekClockAt(new Date(), TEST_HOUSEHOLD_TIMEZONE).weekStart,
+        ),
       })
 
       const week = await $fetch<WeekView>('/api/week')

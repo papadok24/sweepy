@@ -56,9 +56,10 @@ describe('week board local-first completions', async () => {
   })
 
   it('SSR first paint matches client hydration (no Vue mismatch warnings)', async () => {
-    // Assign to "today" so Today is a <ul> on both sides when indexes agree;
-    // a divergent apiDayOfWeek() would render empty-state vs ul (the bug).
-    const today = (new Date().getDay() + 6) % 7
+    // Assign to household today from the Week API so SSR and client agree
+    // (ADR 0008 — no device-local today for shared board markup).
+    const board = await $fetch<WeekView>('/api/week')
+    const today = board.todayDayOfWeek
     const unique = `Hydration match ${Date.now()}`
     const chore = await createChore(unique)
     await assignChore(chore.id, today)

@@ -8,6 +8,9 @@ import {
 
 export type E2eBrowserType = 'chromium' | 'firefox' | 'webkit'
 
+/** IANA zone for test household settings seed (ADR 0008). */
+export const TEST_HOUSEHOLD_TIMEZONE = 'America/Chicago'
+
 /**
  * Boot Nuxt against an isolated hub dir so tests never write the development
  * SQLite file (`.data/db/sqlite.db`).
@@ -19,6 +22,7 @@ export async function setupE2e(
   options: { browser?: boolean, browserType?: E2eBrowserType } = {},
 ) {
   process.env[SQLITE_URL_ENV] = TEST_SQLITE_URL
+  process.env.NUXT_HOUSEHOLD_TIMEZONE = TEST_HOUSEHOLD_TIMEZONE
 
   const browser = options.browser ?? false
 
@@ -32,6 +36,9 @@ export async function setupE2e(
     nuxtConfig: {
       hub: {
         dir: TEST_HUB_DIR,
+      },
+      runtimeConfig: {
+        householdTimezone: TEST_HOUSEHOLD_TIMEZONE,
       },
     },
   })

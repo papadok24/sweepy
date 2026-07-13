@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { H3Event } from 'h3'
+import { assertValidTimeZone } from './week'
 
 /**
  * Typed, validated access to runtime configuration. This is the only door
@@ -20,8 +21,25 @@ import type { H3Event } from 'h3'
  * Client-exposed values go under `runtimeConfig.public` and are NOT
  * validated here — they are visible to browsers and must never be secrets.
  */
-const envSchema = z.object({
-  // No runtime variables yet. Better Auth keys land here with Better Auth.
+export const householdTimezoneSchema = z
+  .string()
+  .trim()
+  .min(1, 'householdTimezone is required')
+  .superRefine((value, ctx) => {
+    try {
+      assertValidTimeZone(value)
+    }
+    catch (error) {
+      ctx.addIssue({
+        code: 'custom',
+        message: error instanceof Error ? error.message : 'Invalid IANA timezone',
+      })
+    }
+  })
+
+export const envSchema = z.object({
+  /** IANA zone used to seed household settings when no DB row exists yet. */
+  householdTimezone: householdTimezoneSchema,
 })
 
 export type Env = z.output<typeof envSchema>

@@ -3,12 +3,12 @@ import { db, schema } from 'hub:db'
 import type { Completion } from '../db/schema'
 import { completeBody } from '../utils/chore-schemas'
 import { withUniqueConflict } from '../utils/db-errors'
+import { currentWeekClock } from '../utils/household-settings'
 import { readZodBody } from '../utils/validate'
-import { weekStartFor } from '../utils/week'
 
 export default eventHandler(async (event): Promise<Completion> => {
   const body = await readZodBody(event, completeBody)
-  const weekStart = weekStartFor()
+  const { weekStart } = await currentWeekClock(event)
 
   const assignment = await db
     .select({

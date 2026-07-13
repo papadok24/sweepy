@@ -139,7 +139,8 @@ describe('chore interaction sounds', async () => {
   })
 
   it('plays the completion cue when checking off from Today', async () => {
-    const today = (new Date().getDay() + 6) % 7
+    const board = await $fetch<WeekView>('/api/week')
+    const today = board.todayDayOfWeek
     const unique = `Sound complete today ${Date.now()}`
     const chore = await createChore(unique)
     await assignChore(chore.id, today)
