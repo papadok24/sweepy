@@ -88,7 +88,7 @@ describe('week board local-first completions', async () => {
     const page = await createPage('/')
     await page.waitForSelector(checkboxSelector(chore.id, 1))
 
-    await page.route('**/api/completions', async (route) => {
+    await page.route('**/api/completions**', async (route) => {
       await route.fulfill({
         status: 500,
         contentType: 'application/json',

@@ -111,10 +111,17 @@ export function useWeekStore() {
     const next = !entry.completed
     setCompleted(choreId, dayOfWeek, next)
 
-    void $fetch('/api/completions', {
-      method: next ? 'POST' : 'DELETE',
-      body: { choreId, dayOfWeek },
-    }).catch(async () => {
+    // Uncheck uses path params — DELETE with a JSON body hangs on Cloudflare
+    // Workers (Error 1101). See ADR 0001.
+    void (next
+      ? $fetch('/api/completions', {
+          method: 'POST',
+          body: { choreId, dayOfWeek },
+        })
+      : $fetch(`/api/completions/${choreId}/${dayOfWeek}`, {
+          method: 'DELETE',
+        })
+    ).catch(async () => {
       try {
         await rehydrateFromServer()
       }

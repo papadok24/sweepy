@@ -288,7 +288,7 @@ describe('home shell WebKit Safari contract', async () => {
       await waitReady(page, todayChore.id, today, 'wait for week board (sync notice)')
 
       await step('stub completions API 500 + tap chore', async () => {
-        await page.route('**/api/completions', async (route) => {
+        await page.route('**/api/completions**', async (route) => {
           await route.fulfill({
             status: 500,
             contentType: 'application/json',

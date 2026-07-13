@@ -1,6 +1,6 @@
 # Local-first Week view store for completion toggles
 
-The week board must feel instant: checking off a chore must not wait on an HTTP round-trip. We hold an in-memory **this-week** Week view as the UI’s source of truth, hydrate it once via Nuxt `useAsyncData`/`useFetch` against `GET /api/week`, and apply completion toggles optimistically with fire-and-forget `POST`/`DELETE /api/completions`. On write failure we re-fetch the week, replace the snapshot, and show a subtle notice owned by the week composable. The store is a Nuxt `useState` + composable (no Pinia); baseline scope is completions only, current week only, concurrent toggles allowed.
+The week board must feel instant: checking off a chore must not wait on an HTTP round-trip. We hold an in-memory **this-week** Week view as the UI’s source of truth, hydrate it once via Nuxt `useAsyncData`/`useFetch` against `GET /api/week`, and apply completion toggles optimistically with fire-and-forget `POST /api/completions` (check) and `DELETE /api/completions/:choreId/:dayOfWeek` (uncheck; path params — ADR 0001). On write failure we re-fetch the week, replace the snapshot, and show a subtle notice owned by the week composable. The store is a Nuxt `useState` + composable (no Pinia); baseline scope is completions only, current week only, concurrent toggles allowed.
 
 ## Considered Options
 

@@ -27,7 +27,7 @@ Re-apply this secret on the new Worker name even if production D1 already has a 
 1. Open `https://sweepy.<account>.workers.dev` — board loads.
 2. Confirm Week / today still match the household timezone (or hit `GET /api/week` and check `todayDayOfWeek` / week identity).
 3. Completions and Assignments from the shared D1 should still be present (same database id as before).
-4. Check a chore, then uncheck it — both must stick after refresh (D1 deletes need a Drizzle terminal method; ADR 0001).
+4. Check a chore, then uncheck it — both must stick after refresh (uncheck is `DELETE /api/completions/:choreId/:dayOfWeek`; DELETE-with-body hangs on Workers — ADR 0001).
 
 ## 4. Add GitHub repository secrets
 

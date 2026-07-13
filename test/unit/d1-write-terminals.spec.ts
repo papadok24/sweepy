@@ -5,8 +5,7 @@ import * as schema from '../../server/db/schema'
 
 /**
  * Seam: Drizzle D1 driver write terminals (ADR 0001).
- * Bare await of delete/insert builders can hang Workers; `.returning()` /
- * `.run()` must be used so the driver calls stmt.all / stmt.run.
+ * Prefer `.returning()` / `.run()` so the driver invokes stmt.raw / stmt.run.
  */
 describe('D1 write terminal methods', () => {
   function mockD1() {

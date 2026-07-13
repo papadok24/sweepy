@@ -386,15 +386,13 @@ describe('API server', async () => {
         body: { choreId: chore.id, dayOfWeek: 2 },
       })
 
-      await $fetch('/api/completions', {
+      await $fetch(`/api/completions/${chore.id}/2`, {
         method: 'DELETE',
-        body: { choreId: chore.id, dayOfWeek: 2 },
       })
 
       // Idempotent: unchecking again still succeeds
-      await $fetch('/api/completions', {
+      await $fetch(`/api/completions/${chore.id}/2`, {
         method: 'DELETE',
-        body: { choreId: chore.id, dayOfWeek: 2 },
       })
 
       const weekAfterUncheck = await $fetch<WeekView>('/api/week')
