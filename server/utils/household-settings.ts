@@ -34,10 +34,12 @@ export async function resolveHouseholdTimezone(event?: H3Event): Promise<string>
   }
 
   try {
+    // Terminal `.run()` required on D1 — bare await of insert/delete builders
+    // can hang the Worker (Error 1101). See ADR 0001.
     await db.insert(schema.householdSettings).values({
       id: SETTINGS_ROW_ID,
       timezone,
-    })
+    }).run()
     return timezone
   }
   catch (error) {
