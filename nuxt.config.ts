@@ -28,14 +28,33 @@ export default defineNuxtConfig({
     format: ['avif', 'webp'],
     quality: 80,
   },
+  // Deploy builds must use a cloudflare* Nitro preset (see scripts/deploy.mjs).
+  // Without it NuxtHub never runs setupCloudflare and `.output/server/wrangler.json`
+  // is not written — `wrangler deploy` then fails with ENOENT.
+  nitro: {
+    ...(isDeploy ? { preset: 'cloudflare_module' as const } : {}),
+    // Keep invocation metadata in Workers Logs; skip storing console/custom logs.
+    cloudflare: {
+      wrangler: {
+        observability: {
+          logs: {
+            enabled: false,
+            invocation_logs: true,
+          },
+        },
+      },
+    },
+  },
   hub: {
     // Local (`pnpm dev` / tests): always file SQLite in `.data/db/`.
-    // Production build: `pnpm deploy` sets SWEEPY_DEPLOY=1 and requires CLOUDFLARE_D1_DATABASE_ID.
+    // Production build: `pnpm run deploy` sets SWEEPY_DEPLOY=1 and requires CLOUDFLARE_D1_DATABASE_ID.
     db: isDeploy && d1DatabaseId
       ? {
           dialect: 'sqlite',
           driver: 'd1',
           connection: { databaseId: d1DatabaseId },
+          // D1 is unreachable at build time; migrations run in scripts/deploy.mjs.
+          applyMigrationsDuringBuild: false,
         }
       : 'sqlite',
   },

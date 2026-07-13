@@ -42,7 +42,7 @@ Or in `.env`:
 CLOUDFLARE_D1_DATABASE_ID=<database-id-from-wrangler>
 ```
 
-`pnpm dev` always uses local file SQLite. The D1 driver is enabled only when `pnpm deploy` runs (it sets `SWEEPY_DEPLOY=1`), so keeping the ID in `.env` is safe for day-to-day local work.
+`pnpm dev` always uses local file SQLite. The D1 driver is enabled only when `pnpm run deploy` runs (it sets `SWEEPY_DEPLOY=1`), so keeping the ID in `.env` is safe for day-to-day local work.
 
 ## Local development
 
@@ -74,7 +74,8 @@ One atomic command — build (with D1 bindings), apply D1 migrations, then deplo
 ```powershell
 # If not already in .env:
 $env:CLOUDFLARE_D1_DATABASE_ID = "<database-id>"
-pnpm deploy
+# Must be `pnpm run deploy` — bare `pnpm deploy` is a reserved pnpm command.
+pnpm run deploy
 ```
 
 ## Verify the plumbing
@@ -91,7 +92,7 @@ Expected: a JSON array of rows with `id`, `label`, and `createdAt` (e.g. labels 
 
 ### Production
 
-After `pnpm deploy`, open the worker URL wrangler prints, then:
+After `pnpm run deploy`, open the worker URL wrangler prints, then:
 
 1. In the [Cloudflare D1 console](https://dash.cloudflare.com/), run:
    `INSERT INTO placeholders (label, created_at) VALUES ('prod-smoke', unixepoch() * 1000);`
