@@ -1,6 +1,6 @@
-import { sql } from 'drizzle-orm'
 import { db, schema } from 'hub:db'
 import type { Chore } from '../../db/schema'
+import { choreWithDaysBatchQueries } from '../../utils/chore-create'
 import { createChoreBody } from '../../utils/chore-schemas'
 import { readZodBody } from '../../utils/validate'
 
@@ -12,6 +12,8 @@ import { readZodBody } from '../../utils/validate'
  *
  * Assignments cannot use multi-row `VALUES (last_insert_rowid(), …)` — rowid updates
  * after the first row and breaks the FK. Freeze the new chore id in a subquery instead.
+ * The assignment query must remain an insert builder: parameterized raw `db.run(sql)`
+ * batch items trigger drizzle-orm#2277 in D1 (`undefined.bind`).
  */
 export default eventHandler(async (event): Promise<Chore> => {
   const body = await readZodBody(event, createChoreBody)
@@ -30,20 +32,9 @@ export default eventHandler(async (event): Promise<Chore> => {
     return chore
   }
 
-  const daysSource = sql.join(
-    days.map(day => sql`select ${day} as day_of_week`),
-    sql` union all `,
+  const [choreRows] = await db.batch(
+    choreWithDaysBatchQueries(db, choreValues, days),
   )
-
-  const [choreRows] = await db.batch([
-    db.insert(schema.chores).values(choreValues).returning(),
-    db.run(sql`
-      insert into chore_assignments (chore_id, day_of_week)
-      select chore_id, day_of_week
-      from (select last_insert_rowid() as chore_id)
-      cross join (${daysSource})
-    `),
-  ])
 
   const [chore] = choreRows
   if (!chore) {

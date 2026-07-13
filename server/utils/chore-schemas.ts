@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 /** 0 = Monday … 6 = Sunday */
 export const dayOfWeekSchema = z.number().int().min(0).max(6)
+export type DayOfWeek = z.infer<typeof dayOfWeekSchema>
 
 export const createChoreBody = z.object({
   name: z.string().trim().min(1),
