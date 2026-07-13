@@ -164,7 +164,8 @@ describe('chore interaction sounds', async () => {
     await assignChore(chore.id, 0)
 
     const page = await createPage('/')
-    const box = checkboxSelector(chore.id, 0)
+    // Scope to Week: day 0 also appears in Today when today is Monday.
+    const box = `#week ${checkboxSelector(chore.id, 0)}`
     await page.waitForSelector(box)
     await installSoundProbe(page)
     await clearSoundPlays(page)
