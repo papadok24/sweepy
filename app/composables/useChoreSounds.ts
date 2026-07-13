@@ -3,13 +3,12 @@
  * Best-effort playback — never throws into chore/completion flows.
  */
 
-const ADD_CHORE_AUDIO_SRC = '/audio/sweepy_add_chore.wav'
-const COMPLETE_CHORE_AUDIO_SRC = '/audio/sweepy_chore_complete.wav'
-
-/** Full cue gain for add-chore and normal Completion. */
-const FULL_VOLUME = 1
-/** Lower gain for rapid-repeat `complete-soft` within the shared celebration window. */
-const COMPLETE_SOFT_VOLUME = 0.45
+import {
+  ADD_CHORE_AUDIO_SRC,
+  COMPLETE_CHORE_AUDIO_SRC,
+  COMPLETE_SOFT_VOLUME,
+  FULL_VOLUME,
+} from '~/utils/chore-audio'
 
 function playCue(audio: HTMLAudioElement | null, volume: number): void {
   if (!audio) return

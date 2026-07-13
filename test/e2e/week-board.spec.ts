@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { $fetch, createPage, url } from '@nuxt/test-utils/e2e'
-import type { Chore, WeekView } from '../helpers/api-types.ts'
+import type { WeekView } from '../helpers/api-types.ts'
 import { setupE2e } from '../helpers/e2e-setup.ts'
+import {
+  assignChore,
+  checkboxSelector,
+  createChore,
+  findAssignmentById,
+} from '../helpers/week-board.ts'
 
 /**
  * Seam: week board browser contract (issue #17).
@@ -10,34 +16,10 @@ import { setupE2e } from '../helpers/e2e-setup.ts'
 describe('week board local-first completions', async () => {
   await setupE2e({ browser: true })
 
-  async function createChore(name: string) {
-    return await $fetch<Chore>('/api/chores', {
-      method: 'POST',
-      body: { name },
-    })
-  }
-
-  async function assign(choreId: number, dayOfWeek: number) {
-    await $fetch(`/api/chores/${choreId}/assignments`, {
-      method: 'POST',
-      body: { dayOfWeek },
-    })
-  }
-
-  function findAssignment(week: WeekView, choreId: number, dayOfWeek: number) {
-    return week.days
-      .find(d => d.dayOfWeek === dayOfWeek)
-      ?.assignments.find(a => a.choreId === choreId)
-  }
-
-  function checkboxSelector(choreId: number, dayOfWeek: number) {
-    return `[data-week-chore="${choreId}"][data-day-of-week="${dayOfWeek}"]`
-  }
-
   it('hydrates real assignments, toggles optimistically, and persists completions', async () => {
     const unique = `Board hydrate ${Date.now()}`
     const chore = await createChore(unique)
-    await assign(chore.id, 0) // Monday
+    await assignChore(chore.id, 0) // Monday
 
     const page = await createPage('/')
     await page.waitForSelector('[data-design-shell]')
@@ -58,7 +40,7 @@ describe('week board local-first completions', async () => {
     await expect
       .poll(async () => {
         const week = await $fetch<WeekView>('/api/week')
-        return findAssignment(week, chore.id, 0)?.completed ?? false
+        return findAssignmentById(week, chore.id, 0)?.completed ?? false
       })
       .toBe(true)
 
@@ -68,7 +50,7 @@ describe('week board local-first completions', async () => {
     await expect
       .poll(async () => {
         const week = await $fetch<WeekView>('/api/week')
-        return findAssignment(week, chore.id, 0)?.completed ?? true
+        return findAssignmentById(week, chore.id, 0)?.completed ?? true
       })
       .toBe(false)
   })
@@ -79,7 +61,7 @@ describe('week board local-first completions', async () => {
     const today = (new Date().getDay() + 6) % 7
     const unique = `Hydration match ${Date.now()}`
     const chore = await createChore(unique)
-    await assign(chore.id, today)
+    await assignChore(chore.id, today)
 
     const hydrationWarnings: string[] = []
     const page = await createPage()
@@ -100,7 +82,7 @@ describe('week board local-first completions', async () => {
   it('rehydrates and shows a sync notice when a completion write fails', async () => {
     const unique = `Board reconcile ${Date.now()}`
     const chore = await createChore(unique)
-    await assign(chore.id, 1) // Tuesday
+    await assignChore(chore.id, 1) // Tuesday
 
     const page = await createPage('/')
     await page.waitForSelector(checkboxSelector(chore.id, 1))
@@ -121,6 +103,6 @@ describe('week board local-first completions', async () => {
       .toBe('false')
 
     const week = await $fetch<WeekView>('/api/week')
-    expect(findAssignment(week, chore.id, 1)?.completed).toBe(false)
+    expect(findAssignmentById(week, chore.id, 1)?.completed).toBe(false)
   })
 })

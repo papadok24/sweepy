@@ -114,9 +114,9 @@ Space scale: 4 / 8 / 12 / 16 / 24 / 32 / 48 (`--space-1` … `--space-7`).
 
 | Event | When | Visual | Audio | Haptic (later) |
 | --- | --- | --- | --- | --- |
-| `complete` | First completion after a quiet gap | Full celebrate | `/audio/sweepy_chore_complete.wav` at authored volume | Light buzz |
-| `complete-soft` | Rapid follow-up Completions (same 1.5s window as soft celebrate) | Soft celebrate | Same completion WAV at lower volume | Softer or skipped |
-| `add-chore` | After Chore create + Week view refresh both succeed | Drawer closes / board updates | `/audio/sweepy_add_chore.wav` | — |
+| `complete` | First completion after a quiet gap | Full celebrate | `/audio/sweepy_chore_complete.wav` at volume `1` | Light buzz |
+| `complete-soft` | Rapid follow-up Completions (same 1.5s window as soft celebrate) | Soft celebrate | Same completion WAV at volume `0.45` | Softer or skipped |
+| `add-chore` | After Chore create + Week view refresh both succeed | Drawer closes / board updates | `/audio/sweepy_add_chore.wav` at volume `1` | — |
 | `day-clear` (future) | Last chore in Today’s bucket done | Louder milestone variant | Distinct fanfare | Stronger pattern |
 
 Playback is best effort via one client-only sound interface that preloads and reuses the two WAV players. Repeated triggers restart the existing cue (no overlapping players). Rejected or unsupported media playback is ignored and never alters Chore creation, Completion persistence, or visual feedback. Browser / OS mute remains authoritative — no in-app sound preference. Reduced motion stays independent of audio.

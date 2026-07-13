@@ -1,9 +1,13 @@
 import type { Page } from 'playwright-core'
 import { createPage, url } from '@nuxt/test-utils/e2e'
+import {
+  ADD_CHORE_AUDIO_SRC,
+  COMPLETE_CHORE_AUDIO_SRC,
+} from '../../app/utils/chore-audio.ts'
 
-/** Asset paths shipped for chore interaction cues (issue #31). */
-export const ADD_CHORE_SRC = '/audio/sweepy_add_chore.wav'
-export const COMPLETE_CHORE_SRC = '/audio/sweepy_chore_complete.wav'
+/** Re-export shared asset paths for e2e assertions. */
+export const ADD_CHORE_SRC = ADD_CHORE_AUDIO_SRC
+export const COMPLETE_CHORE_SRC = COMPLETE_CHORE_AUDIO_SRC
 
 export type SoundPlayRecord = {
   src: string
@@ -59,6 +63,14 @@ export async function createPageWithSoundProbe(path = '/'): Promise<Page> {
   const page = await createPage()
   await page.addInitScript(SOUND_PROBE_INIT)
   await page.goto(url(path), { waitUntil: 'hydration' })
+  return page
+}
+
+/** Hydrated home page with a post-load sound probe ready for user actions. */
+export async function openReadySoundPage(): Promise<Page> {
+  const page = await createPage('/')
+  await page.waitForSelector('[data-week-ready="true"]')
+  await installSoundProbe(page)
   return page
 }
 

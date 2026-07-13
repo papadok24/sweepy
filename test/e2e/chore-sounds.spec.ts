@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { $fetch, createPage } from '@nuxt/test-utils/e2e'
-import type { Chore, WeekView } from '../helpers/api-types.ts'
+import type { WeekView } from '../helpers/api-types.ts'
 import { setupE2e } from '../helpers/e2e-setup.ts'
 import {
   ADD_CHORE_SRC,
@@ -9,9 +9,16 @@ import {
   constructedFor,
   createPageWithSoundProbe,
   installSoundProbe,
+  openReadySoundPage,
   playsFor,
   readSoundProbe,
 } from '../helpers/sound-probe.ts'
+import {
+  assignChore,
+  checkboxSelector,
+  createChore,
+  findAssignmentByName,
+} from '../helpers/week-board.ts'
 
 /**
  * Seam: browser media `play()` boundary for chore interaction sounds (issue #31).
@@ -20,35 +27,9 @@ import {
 describe('chore interaction sounds', async () => {
   await setupE2e({ browser: true })
 
-  async function createChore(name: string) {
-    return await $fetch<Chore>('/api/chores', {
-      method: 'POST',
-      body: { name },
-    })
-  }
-
-  async function assign(choreId: number, dayOfWeek: number) {
-    await $fetch(`/api/chores/${choreId}/assignments`, {
-      method: 'POST',
-      body: { dayOfWeek },
-    })
-  }
-
-  function findAssignment(week: WeekView, choreName: string, dayOfWeek: number) {
-    return week.days
-      .find(d => d.dayOfWeek === dayOfWeek)
-      ?.assignments.find(a => a.choreName === choreName)
-  }
-
-  function checkboxSelector(choreId: number, dayOfWeek: number) {
-    return `[data-week-chore="${choreId}"][data-day-of-week="${dayOfWeek}"]`
-  }
-
   it('plays the add-chore cue once after create and week refresh succeed', async () => {
     const unique = `Sound add ok ${Date.now()}`
-    const page = await createPage('/')
-    await page.waitForSelector('[data-week-ready="true"]')
-    await installSoundProbe(page)
+    const page = await openReadySoundPage()
 
     await page.click('[data-add-chore-open]')
     await page.waitForSelector('[data-add-chore-drawer][open]')
@@ -63,21 +44,18 @@ describe('chore interaction sounds', async () => {
     await expect
       .poll(async () => {
         const week = await $fetch<WeekView>('/api/week')
-        return findAssignment(week, unique, 0)?.choreId
+        return findAssignmentByName(week, unique, 0)?.choreId
       })
       .toEqual(expect.any(Number))
 
     const probe = await readSoundProbe(page)
-    const addPlays = playsFor(probe.plays, ADD_CHORE_SRC)
-    expect(addPlays).toHaveLength(1)
+    expect(playsFor(probe.plays, ADD_CHORE_SRC)).toHaveLength(1)
     expect(playsFor(probe.plays, COMPLETE_CHORE_SRC)).toHaveLength(0)
   })
 
   it('does not play the add-chore cue when form validation fails', async () => {
     const unique = `Sound add invalid ${Date.now()}`
-    const page = await createPage('/')
-    await page.waitForSelector('[data-week-ready="true"]')
-    await installSoundProbe(page)
+    const page = await openReadySoundPage()
 
     await page.click('[data-add-chore-open]')
     await page.waitForSelector('[data-add-chore-drawer][open]')
@@ -86,16 +64,12 @@ describe('chore interaction sounds', async () => {
 
     await page.waitForSelector('[data-add-chore-error]')
     expect(await page.getAttribute('[data-add-chore-drawer]', 'open')).not.toBe(null)
-
-    const probe = await readSoundProbe(page)
-    expect(playsFor(probe.plays, ADD_CHORE_SRC)).toHaveLength(0)
+    expect(playsFor((await readSoundProbe(page)).plays, ADD_CHORE_SRC)).toHaveLength(0)
   })
 
   it('does not play the add-chore cue when save fails', async () => {
     const unique = `Sound add fail ${Date.now()}`
-    const page = await createPage('/')
-    await page.waitForSelector('[data-week-ready="true"]')
-    await installSoundProbe(page)
+    const page = await openReadySoundPage()
 
     await page.click('[data-add-chore-open]')
     await page.waitForSelector('[data-add-chore-drawer][open]')
@@ -117,16 +91,13 @@ describe('chore interaction sounds', async () => {
     await page.click('[data-add-chore-submit]')
     await page.waitForSelector('[data-add-chore-error]')
 
-    const probe = await readSoundProbe(page)
-    expect(playsFor(probe.plays, ADD_CHORE_SRC)).toHaveLength(0)
+    expect(playsFor((await readSoundProbe(page)).plays, ADD_CHORE_SRC)).toHaveLength(0)
     expect(await page.getAttribute('[data-add-chore-drawer]', 'open')).not.toBe(null)
   })
 
   it('does not play the add-chore cue when week refresh fails', async () => {
     const unique = `Sound add refresh fail ${Date.now()}`
-    const page = await createPage('/')
-    await page.waitForSelector('[data-week-ready="true"]')
-    await installSoundProbe(page)
+    const page = await openReadySoundPage()
 
     await page.click('[data-add-chore-open]')
     await page.waitForSelector('[data-add-chore-drawer][open]')
@@ -144,15 +115,14 @@ describe('chore interaction sounds', async () => {
     await page.click('[data-add-chore-submit]')
     await page.waitForSelector('[data-add-chore-error]')
 
-    const probe = await readSoundProbe(page)
-    expect(playsFor(probe.plays, ADD_CHORE_SRC)).toHaveLength(0)
+    expect(playsFor((await readSoundProbe(page)).plays, ADD_CHORE_SRC)).toHaveLength(0)
     expect(await page.getAttribute('[data-add-chore-drawer]', 'open')).not.toBe(null)
   })
 
   it('plays the completion cue when checking off from the Week board', async () => {
     const unique = `Sound complete week ${Date.now()}`
     const chore = await createChore(unique)
-    await assign(chore.id, 0)
+    await assignChore(chore.id, 0)
 
     const page = await createPage('/')
     await page.waitForSelector(checkboxSelector(chore.id, 0))
@@ -172,52 +142,83 @@ describe('chore interaction sounds', async () => {
     const today = (new Date().getDay() + 6) % 7
     const unique = `Sound complete today ${Date.now()}`
     const chore = await createChore(unique)
-    await assign(chore.id, today)
+    await assignChore(chore.id, today)
 
     const page = await createPage('/')
-    await page.waitForSelector(`#today ${checkboxSelector(chore.id, today)}`)
+    const todayBox = `#today ${checkboxSelector(chore.id, today)}`
+    await page.waitForSelector(todayBox)
     await installSoundProbe(page)
     await clearSoundPlays(page)
 
-    await page.locator(`#today ${checkboxSelector(chore.id, today)}`).click()
-    expect(
-      await page.getAttribute(`#today ${checkboxSelector(chore.id, today)}`, 'aria-checked'),
-    ).toBe('true')
+    await page.locator(todayBox).click()
+    expect(await page.getAttribute(todayBox, 'aria-checked')).toBe('true')
 
     await expect
       .poll(async () => playsFor((await readSoundProbe(page)).plays, COMPLETE_CHORE_SRC).length)
+      .toBe(1)
+  })
+
+  it('plays the same cues when activated with the keyboard', async () => {
+    const unique = `Sound keyboard ${Date.now()}`
+    const chore = await createChore(unique)
+    await assignChore(chore.id, 0)
+
+    const page = await createPage('/')
+    const box = checkboxSelector(chore.id, 0)
+    await page.waitForSelector(box)
+    await installSoundProbe(page)
+    await clearSoundPlays(page)
+
+    await page.locator(box).focus()
+    await page.keyboard.press('Space')
+    expect(await page.getAttribute(box, 'aria-checked')).toBe('true')
+    await expect
+      .poll(async () => playsFor((await readSoundProbe(page)).plays, COMPLETE_CHORE_SRC).length)
+      .toBe(1)
+
+    await clearSoundPlays(page)
+    const addUnique = `Sound keyboard add ${Date.now()}`
+    await page.click('[data-add-chore-open]')
+    await page.waitForSelector('[data-add-chore-drawer][open]')
+    await page.fill('[data-add-chore-name]', addUnique)
+    await page.click('[data-add-chore-day="1"]')
+    await page.locator('[data-add-chore-submit]').focus()
+    await page.keyboard.press('Enter')
+
+    await expect
+      .poll(async () => page.getAttribute('[data-add-chore-drawer]', 'open'))
+      .toBe(null)
+    await expect
+      .poll(async () => playsFor((await readSoundProbe(page)).plays, ADD_CHORE_SRC).length)
       .toBe(1)
   })
 
   it('does not play a completion cue when unchecking', async () => {
     const unique = `Sound uncheck ${Date.now()}`
     const chore = await createChore(unique)
-    await assign(chore.id, 1)
+    await assignChore(chore.id, 1)
 
     const page = await createPage('/')
-    await page.waitForSelector(checkboxSelector(chore.id, 1))
+    const box = checkboxSelector(chore.id, 1)
+    await page.waitForSelector(box)
     await installSoundProbe(page)
 
-    await page.click(checkboxSelector(chore.id, 1))
+    await page.click(box)
     await expect
       .poll(async () => playsFor((await readSoundProbe(page)).plays, COMPLETE_CHORE_SRC).length)
       .toBe(1)
 
     await clearSoundPlays(page)
-    await page.click(checkboxSelector(chore.id, 1))
-    expect(await page.getAttribute(checkboxSelector(chore.id, 1), 'aria-checked')).toBe('false')
-
-    const probe = await readSoundProbe(page)
-    expect(playsFor(probe.plays, COMPLETE_CHORE_SRC)).toHaveLength(0)
+    await page.click(box)
+    expect(await page.getAttribute(box, 'aria-checked')).toBe('false')
+    expect(playsFor((await readSoundProbe(page)).plays, COMPLETE_CHORE_SRC)).toHaveLength(0)
   })
 
   it('uses a lower volume for a rapid follow-up Completion', async () => {
-    const uniqueA = `Sound soft A ${Date.now()}`
-    const uniqueB = `Sound soft B ${Date.now()}`
-    const choreA = await createChore(uniqueA)
-    const choreB = await createChore(uniqueB)
-    await assign(choreA.id, 3)
-    await assign(choreB.id, 3)
+    const choreA = await createChore(`Sound soft A ${Date.now()}`)
+    const choreB = await createChore(`Sound soft B ${Date.now()}`)
+    await assignChore(choreA.id, 3)
+    await assignChore(choreB.id, 3)
 
     const page = await createPage('/')
     await page.waitForSelector(checkboxSelector(choreA.id, 3))
@@ -237,12 +238,10 @@ describe('chore interaction sounds', async () => {
   })
 
   it('restarts the completion cue on repeated triggers instead of overlapping', async () => {
-    const uniqueA = `Sound restart A ${Date.now()}`
-    const uniqueB = `Sound restart B ${Date.now()}`
-    const choreA = await createChore(uniqueA)
-    const choreB = await createChore(uniqueB)
-    await assign(choreA.id, 4)
-    await assign(choreB.id, 4)
+    const choreA = await createChore(`Sound restart A ${Date.now()}`)
+    const choreB = await createChore(`Sound restart B ${Date.now()}`)
+    await assignChore(choreA.id, 4)
+    await assignChore(choreB.id, 4)
 
     // Probe before mount so preload construction is visible — reuse vs overlap.
     const page = await createPageWithSoundProbe('/')
@@ -258,7 +257,6 @@ describe('chore interaction sounds', async () => {
       .toBe(2)
 
     const probe = await readSoundProbe(page)
-    // Two play() calls on one reused player — not a second Audio instance.
     expect(constructedFor(probe.constructed, COMPLETE_CHORE_SRC)).toHaveLength(1)
     expect(constructedFor(probe.constructed, ADD_CHORE_SRC)).toHaveLength(1)
   })
@@ -266,10 +264,11 @@ describe('chore interaction sounds', async () => {
   it('keeps chore actions working when media playback is rejected', async () => {
     const unique = `Sound reject ${Date.now()}`
     const chore = await createChore(unique)
-    await assign(chore.id, 5)
+    await assignChore(chore.id, 5)
 
     const page = await createPage('/')
-    await page.waitForSelector(checkboxSelector(chore.id, 5))
+    const box = checkboxSelector(chore.id, 5)
+    await page.waitForSelector(box)
     await installSoundProbe(page)
 
     await page.evaluate(() => {
@@ -283,13 +282,13 @@ describe('chore interaction sounds', async () => {
       }
     })
 
-    await page.click(checkboxSelector(chore.id, 5))
-    expect(await page.getAttribute(checkboxSelector(chore.id, 5), 'aria-checked')).toBe('true')
+    await page.click(box)
+    expect(await page.getAttribute(box, 'aria-checked')).toBe('true')
 
     await expect
       .poll(async () => {
         const week = await $fetch<WeekView>('/api/week')
-        return findAssignment(week, unique, 5)?.completed ?? false
+        return findAssignmentByName(week, unique, 5)?.completed ?? false
       })
       .toBe(true)
 
@@ -306,7 +305,7 @@ describe('chore interaction sounds', async () => {
     await expect
       .poll(async () => {
         const week = await $fetch<WeekView>('/api/week')
-        return findAssignment(week, addUnique, 0)?.choreId
+        return findAssignmentByName(week, addUnique, 0)?.choreId
       })
       .toEqual(expect.any(Number))
 

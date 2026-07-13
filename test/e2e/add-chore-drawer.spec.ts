@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { $fetch, createPage } from '@nuxt/test-utils/e2e'
 import type { WeekView } from '../helpers/api-types.ts'
 import { setupE2e } from '../helpers/e2e-setup.ts'
+import { checkboxSelector, findAssignmentByName } from '../helpers/week-board.ts'
 
 /**
  * Seam: add-chore bottom drawer browser contract (issue #27).
@@ -9,16 +10,6 @@ import { setupE2e } from '../helpers/e2e-setup.ts'
  */
 describe('add chore bottom drawer', async () => {
   await setupE2e({ browser: true })
-
-  function findAssignment(week: WeekView, choreName: string, dayOfWeek: number) {
-    return week.days
-      .find(d => d.dayOfWeek === dayOfWeek)
-      ?.assignments.find(a => a.choreName === choreName)
-  }
-
-  function checkboxSelector(choreId: number, dayOfWeek: number) {
-    return `[data-week-chore="${choreId}"][data-day-of-week="${dayOfWeek}"]`
-  }
 
   it('opens the drawer from the nav Add chore button', async () => {
     const page = await createPage('/')
@@ -51,14 +42,14 @@ describe('add chore bottom drawer', async () => {
     await expect
       .poll(async () => {
         const week = await $fetch<WeekView>('/api/week')
-        return findAssignment(week, unique, 0)?.choreId
+        return findAssignmentByName(week, unique, 0)?.choreId
       })
       .toEqual(expect.any(Number))
 
     const week = await $fetch<WeekView>('/api/week')
-    const choreId = findAssignment(week, unique, 0)!.choreId
-    expect(findAssignment(week, unique, 3)?.choreId).toBe(choreId)
-    expect(findAssignment(week, unique, 1)).toBeUndefined()
+    const choreId = findAssignmentByName(week, unique, 0)!.choreId
+    expect(findAssignmentByName(week, unique, 3)?.choreId).toBe(choreId)
+    expect(findAssignmentByName(week, unique, 1)).toBeUndefined()
 
     await page.waitForSelector(checkboxSelector(choreId, 0))
     await page.waitForSelector(checkboxSelector(choreId, 3))
