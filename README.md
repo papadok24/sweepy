@@ -109,4 +109,4 @@ Expected: JSON including a row with `"label": "prod-smoke"`.
 pnpm test
 ```
 
-Exercises APIs and the browser board against an isolated SQLite file under `.data/test/` (not the `.data/db/sqlite.db` used by `pnpm dev`).
+Runs unit tests, one consolidated API `$fetch` suite, and WebKit browser e2e (ADR 0007) against an isolated SQLite file under `.data/test/` (not the `.data/db/sqlite.db` used by `pnpm dev`). CI installs Playwright WebKit only — locally run `pnpm exec playwright install webkit` if browser suites fail to launch.

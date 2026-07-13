@@ -4,8 +4,9 @@ export default defineConfig({
   test: {
     include: ['test/**/*.{test,spec}.ts'],
     environment: 'node',
-    // E2E suites each `await setupE2e()` inside async `describe`, booting Nuxt
-    // against `.data/test/db/sqlite.db` (isolated from `.data/db/sqlite.db`).
+    // API (`test/api`) and browser e2e (`test/e2e`) each `await setupE2e()`
+    // inside async `describe`, booting Nuxt against `.data/test/db/sqlite.db`
+    // (isolated from `.data/db/sqlite.db`). Browser suites use WebKit only.
     // Parallel workers still race that shared *test* DB (SQLITE_BUSY / native
     // access-violation crashes on Windows), so keep serial file execution.
     fileParallelism: false,

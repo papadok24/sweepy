@@ -9,23 +9,25 @@ import {
 export type E2eBrowserType = 'chromium' | 'firefox' | 'webkit'
 
 /**
- * Boot Nuxt for e2e against an isolated hub dir so tests never write the
- * development SQLite file (`.data/db/sqlite.db`).
+ * Boot Nuxt against an isolated hub dir so tests never write the development
+ * SQLite file (`.data/db/sqlite.db`).
  *
- * Pass `browserType: 'webkit'` for the iOS Safari support bar (ADR 0007).
- * Default browser engine remains Chromium when `browser: true` and type is omitted.
+ * When `browser: true`, defaults to WebKit (ADR 0007 iOS Safari support bar).
+ * CI installs WebKit only — Chromium is not used in CI.
  */
 export async function setupE2e(
   options: { browser?: boolean, browserType?: E2eBrowserType } = {},
 ) {
   process.env[SQLITE_URL_ENV] = TEST_SQLITE_URL
 
+  const browser = options.browser ?? false
+
   await setup({
     rootDir: fileURLToPath(new URL('../..', import.meta.url)),
     server: true,
-    browser: options.browser ?? false,
-    browserOptions: options.browserType
-      ? { type: options.browserType }
+    browser,
+    browserOptions: browser
+      ? { type: options.browserType ?? 'webkit' }
       : undefined,
     nuxtConfig: {
       hub: {
