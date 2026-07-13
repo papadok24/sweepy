@@ -33,15 +33,16 @@ export default defineNuxtConfig({
   // is not written — `wrangler deploy` then fails with ENOENT.
   nitro: {
     ...(isDeploy ? { preset: 'cloudflare_module' as const } : {}),
-    // Keep invocation metadata in Workers Logs; skip storing console/custom logs.
+    // Workers Logs + invocation metadata (Cloudflare dashboard Observability).
     cloudflare: {
       wrangler: {
         // Stable production Worker name (ADR 0009). Cutover from any
         // auto-generated name is a one-time human checklist in the README.
         name: 'sweepy',
         observability: {
+          enabled: true,
           logs: {
-            enabled: false,
+            enabled: true,
             invocation_logs: true,
           },
         },
