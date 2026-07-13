@@ -1,15 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
-import { parseEnv } from '../../server/utils/env'
-
-// The real schema is empty until the first runtime secret lands (Better Auth),
-// so we prove the pipeline with a fake schema: same code path useEnv() takes.
-const schema = z.object({
-  fakeSecret: z.string().min(1),
-  fakeUrl: z.url(),
-})
+import { envSchema, parseEnv } from '../../server/utils/env'
 
 describe('parseEnv', () => {
+  // Prove the pipeline with a fake schema: same code path useEnv() takes.
+  const schema = z.object({
+    fakeSecret: z.string().min(1),
+    fakeUrl: z.url(),
+  })
+
   it('returns the typed config when valid', () => {
     const env = parseEnv(schema, {
       fakeSecret: 'shh',
@@ -23,6 +22,27 @@ describe('parseEnv', () => {
   it('throws a single error listing every missing or invalid key', () => {
     expect(() => parseEnv(schema, { fakeUrl: 'not-a-url' })).toThrowError(
       /fakeSecret[\s\S]*fakeUrl/,
+    )
+  })
+})
+
+describe('envSchema householdTimezone', () => {
+  it('accepts a valid IANA timezone', () => {
+    expect(parseEnv(envSchema, { householdTimezone: 'America/Chicago' })).toEqual({
+      householdTimezone: 'America/Chicago',
+    })
+  })
+
+  it('allows missing or blank householdTimezone (DB may already own the zone)', () => {
+    expect(parseEnv(envSchema, {})).toEqual({ householdTimezone: '' })
+    expect(parseEnv(envSchema, { householdTimezone: '   ' })).toEqual({
+      householdTimezone: '',
+    })
+  })
+
+  it('rejects an invalid IANA timezone', () => {
+    expect(() => parseEnv(envSchema, { householdTimezone: 'Not/AZone' })).toThrowError(
+      /timezone/i,
     )
   })
 })

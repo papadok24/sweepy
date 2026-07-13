@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { db, schema } from 'hub:db'
-import { weekStartFor } from '../utils/week'
+import { currentWeekClock } from '../utils/household-settings'
 
 /** A day-bucket assignment plus its completion status for the current week. */
 export type WeekDayEntry = {
@@ -18,11 +18,13 @@ export type WeekDay = {
 
 export type WeekView = {
   weekStart: string
+  /** Household “today” day bucket (0 = Monday … 6 = Sunday). */
+  todayDayOfWeek: number
   days: WeekDay[]
 }
 
-export default eventHandler(async (): Promise<WeekView> => {
-  const weekStart = weekStartFor()
+export default eventHandler(async (event): Promise<WeekView> => {
+  const { weekStart, todayDayOfWeek } = await currentWeekClock(event)
 
   const rows = await db
     .select({
@@ -60,5 +62,5 @@ export default eventHandler(async (): Promise<WeekView> => {
     })
   }
 
-  return { weekStart, days }
+  return { weekStart, todayDayOfWeek, days }
 })

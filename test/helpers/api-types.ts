@@ -22,6 +22,7 @@ export type Completion = {
 
 export type WeekView = {
   weekStart: string
+  todayDayOfWeek: number
   days: Array<{
     dayOfWeek: number
     assignments: Array<{

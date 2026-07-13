@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { createClient } from '@libsql/client'
 import { drizzle } from 'drizzle-orm/libsql'
-import { completions } from '../../server/db/schema.ts'
+import { completions, householdSettings } from '../../server/db/schema.ts'
 import {
   TEST_SQLITE_URL,
   ensureSqliteDir,
@@ -35,6 +35,24 @@ export async function insertCompletion(input: {
       completedAt: input.completedAt ?? Date.now(),
     }).returning()
     return row
+  }
+  finally {
+    client.close()
+  }
+}
+
+/** Upsert the singleton household settings timezone (ADR 0008). */
+export async function upsertHouseholdTimezone(timezone: string) {
+  const { client, db } = openLocalDb()
+
+  try {
+    await db
+      .insert(householdSettings)
+      .values({ id: 1, timezone })
+      .onConflictDoUpdate({
+        target: householdSettings.id,
+        set: { timezone },
+      })
   }
   finally {
     client.close()

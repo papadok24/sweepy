@@ -1,12 +1,12 @@
 import { and, eq } from 'drizzle-orm'
 import { db, schema } from 'hub:db'
 import { completeBody } from '../utils/chore-schemas'
+import { currentWeekClock } from '../utils/household-settings'
 import { readZodBody } from '../utils/validate'
-import { weekStartFor } from '../utils/week'
 
 export default eventHandler(async (event): Promise<{ ok: true }> => {
   const body = await readZodBody(event, completeBody)
-  const weekStart = weekStartFor()
+  const { weekStart } = await currentWeekClock(event)
 
   await db
     .delete(schema.completions)

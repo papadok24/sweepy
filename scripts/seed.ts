@@ -5,9 +5,11 @@ import {
   choreAssignments,
   chores,
   completions,
+  householdSettings,
   placeholders,
 } from '../server/db/schema.ts'
-import { weekStartFor } from '../server/utils/week.ts'
+import { assertValidTimeZone } from '../server/utils/timezone.ts'
+import { weekClockAt } from '../server/utils/week.ts'
 import {
   DEV_SQLITE_URL,
   ensureSqliteDir,
@@ -34,6 +36,16 @@ const SAMPLE_CHORES: ReadonlyArray<{
   { name: 'Mop kitchen', days: [5] },
 ]
 
+function resolveSeedTimezone(): string {
+  const timezone = process.env.NUXT_HOUSEHOLD_TIMEZONE?.trim()
+  if (!timezone) {
+    throw new Error(
+      'NUXT_HOUSEHOLD_TIMEZONE is required for seed (see .env.example).',
+    )
+  }
+  return assertValidTimeZone(timezone)
+}
+
 /**
  * Wipes local SQLite domain tables and loads a fresh development dataset.
  * Requires migrations to have been applied (e.g. via `pnpm db:migrate`).
@@ -52,6 +64,10 @@ export async function seedPlaceholders(options?: { url?: string }) {
     await db.delete(choreAssignments)
     await db.delete(chores)
     await db.delete(placeholders)
+    await db.delete(householdSettings)
+
+    const timezone = resolveSeedTimezone()
+    await db.insert(householdSettings).values({ id: 1, timezone })
 
     await db.insert(placeholders).values(
       SAMPLE_LABELS.map(label => ({
@@ -60,7 +76,7 @@ export async function seedPlaceholders(options?: { url?: string }) {
       })),
     )
 
-    const weekStart = weekStartFor()
+    const weekStart = weekClockAt(new Date(), timezone).weekStart
     const now = Date.now()
 
     for (const sample of SAMPLE_CHORES) {

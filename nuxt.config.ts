@@ -39,4 +39,8 @@ export default defineNuxtConfig({
         }
       : 'sqlite',
   },
+  // NUXT_HOUSEHOLD_TIMEZONE — seeds household settings on first need (ADR 0008).
+  runtimeConfig: {
+    householdTimezone: '',
+  },
 })

@@ -54,3 +54,14 @@ export const completions = sqliteTable('completions', {
 ])
 
 export type Completion = typeof completions.$inferSelect
+
+/**
+ * Singleton household preferences (ADR 0008). One row (`id = 1`) for the
+ * shared board — starts with IANA timezone for Week boundaries / “today”.
+ */
+export const householdSettings = sqliteTable('household_settings', {
+  id: integer('id').primaryKey(),
+  timezone: text('timezone').notNull(),
+})
+
+export type HouseholdSettings = typeof householdSettings.$inferSelect

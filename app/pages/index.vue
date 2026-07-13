@@ -18,7 +18,11 @@ const {
 
 const { playAddChore, playComplete } = useChoreSounds()
 
-const todayLabel = computed(() => dayLabels[todayIndex.value] ?? 'Today')
+const todayLabel = computed(() => {
+  const index = todayIndex.value
+  if (index === undefined) return 'Today'
+  return dayLabels[index] ?? 'Today'
+})
 
 /** Add-chore bottom drawer (issue #27) — await-and-refresh, not optimistic. */
 const drawerRef = ref<HTMLDialogElement | null>(null)
@@ -281,14 +285,14 @@ function onToggle(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
             <button
               type="button"
               class="completion control"
-              :class="celebrationClass(entry.choreId, todayIndex, entry)"
+              :class="celebrationClass(entry.choreId, todayIndex!, entry)"
               role="checkbox"
               :aria-checked="entry.completed"
               :aria-label="ariaLabelFor(entry)"
               :disabled="!canToggle"
               :data-week-chore="entry.choreId"
               :data-day-of-week="todayIndex"
-              @click="onToggle(entry.choreId, todayIndex, entry)"
+              @click="onToggle(entry.choreId, todayIndex!, entry)"
             >
               <span class="completion__mark" aria-hidden="true" />
             </button>

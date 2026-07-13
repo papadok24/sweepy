@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { $fetch, createPage } from '@nuxt/test-utils/e2e'
 import type { Page } from 'playwright-core'
-import type { Chore } from '../helpers/api-types.ts'
+import type { Chore, WeekView } from '../helpers/api-types.ts'
 import { setupE2e } from '../helpers/e2e-setup.ts'
 
 /** iPhone 14-class portrait — kitchen one-handed fixture (issue #21 / ADR 0007). */
@@ -93,7 +93,8 @@ describe('home shell WebKit Safari contract', async () => {
     progress('ok Nuxt + WebKit ready')
     await step('seed Today + Week chores', async () => {
       const stamp = Date.now()
-      today = (new Date().getDay() + 6) % 7
+      const board = await $fetch<WeekView>('/api/week')
+      today = board.todayDayOfWeek
       const otherDay = (today + 1) % 7
 
       todayChore = await $fetch<Chore>('/api/chores', {
