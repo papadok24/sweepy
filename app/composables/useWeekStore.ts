@@ -20,8 +20,8 @@ export type WeekView = {
 
 /**
  * Local-first this-week store (ADR-0006).
- * Hydrate once from GET /api/week; optimistic completion toggles;
- * failed writes rehydrate and set a subtle sync notice.
+ * Hydrate once from GET /api/week; optimistic completion toggles and Edit Save;
+ * failed writes rehydrate and set a subtle sync notice. Archive awaits then refreshes.
  *
  * SSR notes (see ADR-0006 “Hydration” + ADR 0008):
  * - `week` is the `useAsyncData` payload itself (no mirrored useState).
@@ -132,6 +132,101 @@ export function useWeekStore() {
     })
   }
 
+  function currentDaysForChore(choreId: number): number[] {
+    const snapshot = week.value
+    if (!snapshot) return []
+    return snapshot.days
+      .filter(d => d.assignments.some(a => a.choreId === choreId))
+      .map(d => d.dayOfWeek)
+      .sort((a, b) => a - b)
+  }
+
+  function applyChoreEditLocally(input: {
+    choreId: number
+    name: string
+    notes: string | null
+    days: number[]
+  }) {
+    const snapshot = week.value
+    if (!snapshot) return
+
+    const desired = new Set(input.days)
+    for (const day of snapshot.days) {
+      const existing = day.assignments.find(a => a.choreId === input.choreId)
+      if (desired.has(day.dayOfWeek)) {
+        if (existing) {
+          existing.choreName = input.name
+          existing.choreNotes = input.notes
+        }
+        else {
+          day.assignments.push({
+            choreId: input.choreId,
+            choreName: input.name,
+            choreNotes: input.notes,
+            completed: false,
+            completedAt: null,
+          })
+        }
+      }
+      else if (existing) {
+        day.assignments = day.assignments.filter(a => a.choreId !== input.choreId)
+      }
+    }
+    triggerRef(week)
+  }
+
+  /**
+   * Optimistic Edit Save (ADR 0006): patch local Week, then fire PATCH +
+   * composed per-day Assignment add/remove. Failure → rehydrate + notice.
+   */
+  function saveChoreEdit(input: {
+    choreId: number
+    name: string
+    notes: string | null
+    days: number[]
+  }) {
+    const beforeDays = currentDaysForChore(input.choreId)
+    applyChoreEditLocally(input)
+
+    const toAdd = input.days.filter(d => !beforeDays.includes(d))
+    const toRemove = beforeDays.filter(d => !input.days.includes(d))
+
+    void Promise.all([
+      $fetch(`/api/chores/${input.choreId}`, {
+        method: 'PATCH',
+        body: {
+          name: input.name,
+          notes: input.notes,
+        },
+      }),
+      ...toAdd.map(dayOfWeek =>
+        $fetch(`/api/chores/${input.choreId}/assignments`, {
+          method: 'POST',
+          body: { dayOfWeek },
+        }),
+      ),
+      ...toRemove.map(dayOfWeek =>
+        $fetch(`/api/chores/${input.choreId}/assignments/${dayOfWeek}`, {
+          method: 'DELETE',
+        }),
+      ),
+    ]).catch(async () => {
+      try {
+        await rehydrateFromServer()
+      }
+      catch {
+        // Still notify even if rehydrate fails.
+      }
+      showSyncNotice('Couldn’t save that edit — board refreshed.')
+    })
+  }
+
+  /** Await-and-refresh Archive (same settlement family as Add Chore). */
+  async function archiveChore(choreId: number) {
+    await $fetch(`/api/chores/${choreId}/archive`, { method: 'POST' })
+    await rehydrateFromServer()
+  }
+
   async function retryHydrate() {
     hydrateError.value = null
     try {
@@ -146,7 +241,7 @@ export function useWeekStore() {
     }
   }
 
-  /** Non-optimistic board refresh after create/edit (not completion toggles). */
+  /** Non-optimistic board refresh after create/archive (not Edit Save). */
   async function refreshWeek() {
     await rehydrateFromServer()
   }
@@ -158,6 +253,8 @@ export function useWeekStore() {
     hydrateError,
     pending,
     toggleCompletion,
+    saveChoreEdit,
+    archiveChore,
     retryHydrate,
     refreshWeek,
     dismissSyncNotice,

@@ -11,6 +11,8 @@ const {
   hydrateError,
   pending,
   toggleCompletion,
+  saveChoreEdit,
+  archiveChore,
   retryHydrate,
   refreshWeek,
   dismissSyncNotice,
@@ -102,6 +104,129 @@ async function submitAddChore() {
   }
   finally {
     saving.value = false
+  }
+}
+
+/** Edit Chore drawer (#46 / #48 / #49) — twin of Add; Save optimistic, Archive await. */
+const editDrawerRef = ref<HTMLDialogElement | null>(null)
+const editChoreId = ref<number | null>(null)
+const editName = ref('')
+const editNotes = ref('')
+const editDays = ref<number[]>([])
+const editError = ref<string | null>(null)
+const editArchiving = ref(false)
+const editStep = ref<'details' | 'archive'>('details')
+
+function resetEditForm() {
+  editChoreId.value = null
+  editName.value = ''
+  editNotes.value = ''
+  editDays.value = []
+  editError.value = null
+  editArchiving.value = false
+  editStep.value = 'details'
+}
+
+function hydrateEditFromWeek(choreId: number) {
+  const snapshot = week.value
+  if (!snapshot) return false
+
+  const membership: { dayOfWeek: number, entry: WeekDayEntry }[] = []
+  for (const day of snapshot.days) {
+    const entry = day.assignments.find(a => a.choreId === choreId)
+    if (entry) membership.push({ dayOfWeek: day.dayOfWeek, entry })
+  }
+  if (membership.length === 0) return false
+
+  const first = membership[0]!.entry
+  editChoreId.value = choreId
+  editName.value = first.choreName
+  editNotes.value = first.choreNotes ?? ''
+  editDays.value = membership.map(m => m.dayOfWeek).sort((a, b) => a - b)
+  editError.value = null
+  editArchiving.value = false
+  editStep.value = 'details'
+  return true
+}
+
+function openEditChore(choreId: number) {
+  if (!hydrateEditFromWeek(choreId)) return
+  editDrawerRef.value?.showModal()
+}
+
+function closeEditChore() {
+  editDrawerRef.value?.close()
+}
+
+function onEditDrawerClose() {
+  resetEditForm()
+}
+
+function onEditDrawerClick(event: MouseEvent) {
+  if (event.target === editDrawerRef.value) closeEditChore()
+}
+
+function toggleEditDay(day: number) {
+  const next = new Set(editDays.value)
+  if (next.has(day)) next.delete(day)
+  else next.add(day)
+  editDays.value = [...next].sort((a, b) => a - b)
+}
+
+function isEditDaySelected(day: number) {
+  return editDays.value.includes(day)
+}
+
+function submitEditChore() {
+  const choreId = editChoreId.value
+  if (choreId == null) return
+
+  const name = editName.value.trim()
+  if (!name) {
+    editError.value = 'Enter a chore name.'
+    return
+  }
+  if (editDays.value.length === 0) {
+    editError.value = 'Pick at least one day.'
+    return
+  }
+
+  editError.value = null
+  const notes = editNotes.value.trim()
+  saveChoreEdit({
+    choreId,
+    name,
+    notes: notes.length > 0 ? notes : null,
+    days: [...editDays.value],
+  })
+  closeEditChore()
+}
+
+function openArchiveStep() {
+  editError.value = null
+  editStep.value = 'archive'
+}
+
+function cancelArchiveStep() {
+  editError.value = null
+  editStep.value = 'details'
+}
+
+async function confirmArchive() {
+  const choreId = editChoreId.value
+  if (choreId == null) return
+
+  editError.value = null
+  editArchiving.value = true
+  try {
+    await archiveChore(choreId)
+    closeEditChore()
+  }
+  catch {
+    editError.value = 'Couldn’t archive that chore. Try again.'
+  }
+  finally {
+    editArchiving.value = false
   }
 }
 
@@ -296,7 +421,15 @@ function onToggle(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
             >
               <span class="completion__mark" aria-hidden="true" />
             </button>
-            <span class="chore-slot__name">{{ entry.choreName }}</span>
+            <button
+              type="button"
+              class="chore-slot__name"
+              :data-edit-chore="entry.choreId"
+              :aria-label="`Edit ${entry.choreName}`"
+              @click="openEditChore(entry.choreId)"
+            >
+              {{ entry.choreName }}
+            </button>
           </li>
         </ul>
 
@@ -421,6 +554,161 @@ function onToggle(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
       </form>
     </dialog>
 
+    <dialog
+      ref="editDrawerRef"
+      class="add-chore-drawer"
+      data-edit-chore-drawer
+      :aria-labelledby="editStep === 'archive' ? 'edit-chore-archive-heading' : 'edit-chore-heading'"
+      @close="onEditDrawerClose"
+      @click="onEditDrawerClick"
+    >
+      <form
+        v-if="editStep === 'details'"
+        class="add-chore-drawer__panel surface"
+        @submit.prevent="submitEditChore"
+      >
+        <div class="add-chore-drawer__header">
+          <h2 id="edit-chore-heading">Edit chore</h2>
+          <button
+            type="button"
+            class="btn control btn--secondary"
+            data-edit-chore-close
+            aria-label="Close edit chore"
+            @click="closeEditChore"
+          >
+            Close
+          </button>
+        </div>
+
+        <label class="add-chore-drawer__label" for="edit-chore-name">Name</label>
+        <input
+          id="edit-chore-name"
+          v-model="editName"
+          class="field control"
+          data-edit-chore-name
+          name="name"
+          type="text"
+          autocomplete="off"
+          :disabled="editArchiving"
+        >
+
+        <label class="add-chore-drawer__label" for="edit-chore-notes">Notes (optional)</label>
+        <input
+          id="edit-chore-notes"
+          v-model="editNotes"
+          class="field control"
+          data-edit-chore-notes
+          name="notes"
+          type="text"
+          autocomplete="off"
+          :disabled="editArchiving"
+        >
+
+        <p class="add-chore-drawer__label" id="edit-chore-days-label">Days</p>
+        <div
+          class="add-chore-drawer__days"
+          role="group"
+          aria-labelledby="edit-chore-days-label"
+        >
+          <button
+            v-for="(label, day) in dayLabels"
+            :key="day"
+            type="button"
+            class="btn control add-chore-day"
+            :class="{ 'add-chore-day--selected': isEditDaySelected(day) }"
+            :data-edit-chore-day="day"
+            :aria-pressed="isEditDaySelected(day)"
+            :disabled="editArchiving"
+            @click="toggleEditDay(day)"
+          >
+            {{ label }}
+          </button>
+        </div>
+
+        <p
+          v-if="editError"
+          class="add-chore-drawer__error"
+          data-edit-chore-error
+          role="alert"
+        >
+          {{ editError }}
+        </p>
+
+        <button
+          type="submit"
+          class="btn control btn--primary"
+          data-edit-chore-submit
+          :disabled="editArchiving"
+        >
+          Save
+        </button>
+
+        <button
+          type="button"
+          class="btn control btn--secondary"
+          data-edit-chore-archive
+          :disabled="editArchiving"
+          @click="openArchiveStep"
+        >
+          Archive chore
+        </button>
+      </form>
+
+      <div
+        v-else
+        class="add-chore-drawer__panel surface"
+        data-edit-chore-archive-step
+      >
+        <div class="add-chore-drawer__header">
+          <h2 id="edit-chore-archive-heading">Archive chore?</h2>
+          <button
+            type="button"
+            class="btn control btn--secondary"
+            data-edit-chore-close
+            aria-label="Close edit chore"
+            :disabled="editArchiving"
+            @click="closeEditChore"
+          >
+            Close
+          </button>
+        </div>
+
+        <p class="add-chore-drawer__archive-copy" data-edit-chore-archive-copy>
+          Completions are kept. The chore leaves Today and Week.
+        </p>
+
+        <p
+          v-if="editError"
+          class="add-chore-drawer__error"
+          data-edit-chore-error
+          role="alert"
+        >
+          {{ editError }}
+        </p>
+
+        <button
+          type="button"
+          class="btn control btn--primary"
+          data-edit-chore-archive-confirm
+          :disabled="editArchiving"
+          :aria-busy="editArchiving"
+          @click="confirmArchive"
+        >
+          {{ editArchiving ? 'Archiving…' : 'Archive' }}
+        </button>
+
+        <button
+          type="button"
+          class="btn control btn--secondary"
+          data-edit-chore-archive-cancel
+          :disabled="editArchiving"
+          @click="cancelArchiveStep"
+        >
+          Back to edit
+        </button>
+      </div>
+    </dialog>
+
     <section id="week" class="week-board surface" aria-labelledby="week-heading">
       <h2 id="week-heading">Week</h2>
       <div
@@ -503,7 +791,15 @@ function onToggle(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
               >
                 <span class="completion__mark" aria-hidden="true" />
               </button>
-              <span class="chore-slot__name">{{ entry.choreName }}</span>
+              <button
+                type="button"
+                class="chore-slot__name"
+                :data-edit-chore="entry.choreId"
+                :aria-label="`Edit ${entry.choreName}`"
+                @click="openEditChore(entry.choreId)"
+              >
+                {{ entry.choreName }}
+              </button>
             </li>
           </ul>
         </article>

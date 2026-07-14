@@ -1,10 +1,13 @@
-# Local-first Week view store for completion toggles
+# Local-first Week view store for completion toggles and Edit Chore Save
 
-The week board must feel instant: checking off a chore must not wait on an HTTP round-trip. We hold an in-memory **this-week** Week view as the UI’s source of truth, hydrate it once via Nuxt `useAsyncData`/`useFetch` against `GET /api/week`, and apply completion toggles optimistically with fire-and-forget `POST /api/completions` (check) and `DELETE /api/completions/:choreId/:dayOfWeek` (uncheck; path params — ADR 0001). On write failure we re-fetch the week, replace the snapshot, and show a subtle notice owned by the week composable. The store is a Nuxt `useState` + composable (no Pinia); baseline scope is completions only, current week only, concurrent toggles allowed.
+The week board must feel instant: checking off a chore — and saving edits to an existing Chore — must not wait on an HTTP round-trip. We hold an in-memory **this-week** Week view as the UI’s source of truth, hydrate it once via Nuxt `useAsyncData`/`useFetch` against `GET /api/week`, and apply completion toggles optimistically with fire-and-forget `POST /api/completions` (check) and `DELETE /api/completions/:choreId/:dayOfWeek` (uncheck; path params — ADR 0001). **Edit Chore Save** follows the same pattern: patch name / notes / day membership in the Week document immediately, fire `PATCH` chore plus per-day Assignment add/remove in the background, and on failure re-fetch the week, replace the snapshot, and show a subtle notice owned by the week composable. The store is a Nuxt `useState` + composable (no Pinia); current week only; concurrent completion toggles allowed.
+
+**Await-and-refresh** stays for **Add Chore** (create) and **Archive** — rarer flows with confirm or first-paint settlement; optimistic there was judged not worth blink-off / blink-back risk on failure.
 
 ## Considered Options
 
 - **Await the API on every toggle** — correct under flaky networks, but fights the snappy household UX we want. Rejected for the check/uncheck path.
+- **Await the API on Edit Chore Save** — same snappiness argument as toggles once a Chore already exists on the board; rejected for Save. Still used for Add Chore and Archive.
 - **Pinia (or another client store package)** — workable, but Nuxt `useState` already covers SSR-friendly shared state for one document; adding a package for this baseline was rejected.
 - **Normalized entity stores or multi-week cache from day one** — better when many screens share overlapping data or week navigation exists; premature for a single current-week board.
 - **Outbox / ordered write queue / per-cell locking** — stronger under rapid toggles and offline use; deferred until we see real pain. Baseline relies on reconcile-via-rehydrate.
@@ -24,6 +27,6 @@ Do not gate SSR markup on client-only clocks, `localStorage`, or a second copy o
 ## Consequences
 
 - First paint that never hydrates must show a hard error/empty state — no demo/mock fallback once the UI is wired to the real API.
-- Successful background writes are no-ops against local state (already updated). Failed writes may briefly show a wrong checkmark until re-hydrate completes.
-- Chore create/edit/archive and assignment edits stay outside this optimistic path until a later spec.
+- Successful background writes are no-ops against local state (already updated). Failed writes may briefly show a wrong checkmark or an edited Chore/Assignment shape until re-hydrate completes.
+- Chore **create** (Add Chore) and **Archive** stay outside this optimistic path (await-and-refresh). Edit Chore **Save** (name, notes, Assignment day set via composed per-day APIs) is in the optimistic path; Edit drawer still hydrates from the Week document only (no dedicated GET chore).
 - “Today” may briefly follow the SSR clock, then snap to the device-local day after mount when they differ (UTC Worker vs household TZ). A configured household timezone can replace that later if needed.
