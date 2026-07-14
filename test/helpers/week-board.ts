@@ -38,3 +38,7 @@ export function findAssignmentById(
 export function checkboxSelector(choreId: number, dayOfWeek: number) {
   return `[data-week-chore="${choreId}"][data-day-of-week="${dayOfWeek}"]`
 }
+
+export function editNameSelector(choreId: number) {
+  return `[data-edit-chore="${choreId}"]`
+}
