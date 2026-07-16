@@ -145,6 +145,8 @@ Fallbacks: OS mute → no audible output (actions still succeed); no vibrate API
 
 - **Today** (home) — current day bucket + completions. Shell recipe: `.today-shell`.
 - **Week** (secondary) — all day buckets for planning. Recipe: `.week-board`.
+- **Sweeps** — celebratory look-back; dedicated route from primary nav (see `CONTEXT.md`).
+- **Primary nav (mobile, four controls)** — when Sweeps sits beside Today / Week / Add chore: **wrap 2×2** equal chunky `.btn.control` peers (prototype [#63](https://github.com/papadok24/sweepy/issues/63) variant A). Not a compact icon strip or a sticky thumb dock.
 - **Mobile-first** — stacked day sections by default.
 - **Wide container** — `.week-board` becomes columns via **container queries** (not viewport-only).
 - **iOS Safari bar** — phone UX is validated against iOS Safari in a browser tab (iOS 16.2+); see ADR 0007 and the [real iPhone checklist](docs/checklists/ios-safari-iphone.md).
