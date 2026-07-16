@@ -1,5 +1,5 @@
 /**
- * Client-only chore interaction sounds (issue #31).
+ * Client-only chore interaction sounds (issue #31 / #56).
  * Best-effort playback — never throws into chore/completion flows.
  */
 
@@ -7,6 +7,7 @@ import {
   ADD_CHORE_AUDIO_SRC,
   COMPLETE_CHORE_AUDIO_SRC,
   COMPLETE_SOFT_VOLUME,
+  FULL_SWEEP_AUDIO_SRC,
   FULL_VOLUME,
 } from '~/utils/chore-audio'
 
@@ -28,6 +29,7 @@ function playCue(audio: HTMLAudioElement | null, volume: number): void {
 export function useChoreSounds() {
   let addAudio: HTMLAudioElement | null = null
   let completeAudio: HTMLAudioElement | null = null
+  let fullSweepAudio: HTMLAudioElement | null = null
 
   function ensurePlayers() {
     if (!import.meta.client) return
@@ -38,6 +40,10 @@ export function useChoreSounds() {
     if (!completeAudio) {
       completeAudio = new Audio(COMPLETE_CHORE_AUDIO_SRC)
       completeAudio.preload = 'auto'
+    }
+    if (!fullSweepAudio) {
+      fullSweepAudio = new Audio(FULL_SWEEP_AUDIO_SRC)
+      fullSweepAudio.preload = 'auto'
     }
   }
 
@@ -58,5 +64,10 @@ export function useChoreSounds() {
     )
   }
 
-  return { playAddChore, playComplete }
+  function playFullSweep() {
+    ensurePlayers()
+    playCue(fullSweepAudio, FULL_VOLUME)
+  }
+
+  return { playAddChore, playComplete, playFullSweep }
 }

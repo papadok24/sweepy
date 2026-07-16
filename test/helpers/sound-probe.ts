@@ -3,12 +3,13 @@ import { createPage, url } from '@nuxt/test-utils/e2e'
 import {
   ADD_CHORE_AUDIO_SRC,
   COMPLETE_CHORE_AUDIO_SRC,
+  FULL_SWEEP_AUDIO_SRC,
 } from '../../app/utils/chore-audio.ts'
 
 /** Re-export shared asset paths for e2e assertions. */
 export const ADD_CHORE_SRC = ADD_CHORE_AUDIO_SRC
 export const COMPLETE_CHORE_SRC = COMPLETE_CHORE_AUDIO_SRC
-
+export const FULL_SWEEP_SRC = FULL_SWEEP_AUDIO_SRC
 export type SoundPlayRecord = {
   src: string
   volume: number

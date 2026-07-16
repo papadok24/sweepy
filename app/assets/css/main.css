@@ -311,6 +311,7 @@
 
   /* Today */
   .today-shell {
+    position: relative;
     display: grid;
     gap: var(--space-4);
     padding: var(--space-5);
@@ -674,6 +675,77 @@
     font-family: var(--font-display);
     font-size: var(--font-size-lg);
     color: var(--color-accent-strong);
+  }
+
+  /* Full sweep — Today milestone overlay (design.md) */
+  .today-shell--full-sweep .chore-list {
+    opacity: 0.45;
+    transition: opacity var(--motion-med) var(--ease-spring);
+  }
+
+  .full-sweep-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    padding: var(--space-4);
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--color-surface) 55%, transparent);
+    backdrop-filter: blur(2px);
+    animation: full-sweep-wash var(--motion-med) var(--ease-spring);
+  }
+
+  .full-sweep-overlay__beat {
+    flex-direction: column;
+    text-align: center;
+    padding: var(--space-5) var(--space-4);
+    background: color-mix(in srgb, var(--color-surface) 92%, var(--color-brand-soft));
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    animation: full-sweep-pop var(--motion-med) var(--ease-spring);
+  }
+
+  .full-sweep-overlay__copy {
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  .full-sweep-overlay__sub {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-md);
+  }
+
+  @keyframes full-sweep-wash {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes full-sweep-pop {
+    from {
+      transform: scale(0.92);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .full-sweep-overlay,
+    .full-sweep-overlay__beat {
+      animation: none;
+    }
+
+    .today-shell--full-sweep .chore-list {
+      transition: none;
+    }
   }
 
   /* Demo nav */
