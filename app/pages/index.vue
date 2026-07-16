@@ -250,11 +250,6 @@ let lastCompletedAt = 0
 let celebrateTimer: ReturnType<typeof setTimeout> | undefined
 let fullSweepTimer: ReturnType<typeof setTimeout> | undefined
 
-onBeforeUnmount(() => {
-  if (celebrateTimer !== undefined) clearTimeout(celebrateTimer)
-  if (fullSweepTimer !== undefined) clearTimeout(fullSweepTimer)
-})
-
 function celebrationClass(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
   const active = entry.completed
     && celebratingKey.value === completionKey(choreId, dayOfWeek)
@@ -279,6 +274,12 @@ function ariaLabelFor(entry: WeekDayEntry) {
   return entry.completed
     ? `${entry.choreName}, completed`
     : `${entry.choreName}, not completed`
+}
+
+/** True when every today Assignment currently has a Completion. */
+function isTodayFullSweep(): boolean {
+  const slots = todayAssignments.value
+  return slots.length > 0 && slots.every(slot => slot.completed)
 }
 
 /** True when completing this today slot leaves every today Assignment done. */
@@ -309,6 +310,25 @@ function startFullSweep() {
     clearFullSweep()
   }, FULL_SWEEP_MS)
 }
+
+// Drop a false cheer if optimistic Full sweep reconciles away (or unchecks mid-beat).
+watch(todayAssignments, () => {
+  if (fullSweepActive.value && !isTodayFullSweep()) clearFullSweep()
+})
+
+function onHashChange() {
+  if (fullSweepActive.value) clearFullSweep()
+}
+
+onMounted(() => {
+  window.addEventListener('hashchange', onHashChange)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('hashchange', onHashChange)
+  if (celebrateTimer !== undefined) clearTimeout(celebrateTimer)
+  clearFullSweep()
+})
 
 function onToggle(
   choreId: number,
