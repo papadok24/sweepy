@@ -7,8 +7,8 @@ export default defineConfig({
     // API (`test/api`) and browser e2e (`test/e2e`) each `await setupE2e()`
     // inside async `describe`, booting Nuxt against `.data/test/db/sqlite.db`
     // (isolated from `.data/db/sqlite.db`). Browser suites use WebKit only.
-    // Parallel workers still race that shared *test* DB (SQLITE_BUSY / native
-    // access-violation crashes on Windows), so keep serial file execution.
+    // Parallel workers still race that shared *test* DB (concurrent suite
+    // writes), so keep serial file execution.
     fileParallelism: false,
     maxWorkers: 1,
     pool: 'forks',

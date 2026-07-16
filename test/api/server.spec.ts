@@ -1,19 +1,18 @@
 import { createClient } from '@libsql/client'
 import { describe, expect, it } from 'vitest'
 import { $fetch } from '@nuxt/test-utils/e2e'
-import { seedPlaceholders } from '../../scripts/seed.ts'
 import { weekClockAt } from '../../server/utils/week.ts'
 import type { Assignment, Chore, Completion, WeekView } from '../helpers/api-types.ts'
 import { setupE2e, TEST_HOUSEHOLD_TIMEZONE } from '../helpers/e2e-setup.ts'
 import {
   countCompletionsForChore,
   insertCompletion,
+  insertPlaceholders,
   previousWeekStart,
   upsertHouseholdTimezone,
 } from '../helpers/fixtures.ts'
 import {
   DEV_SQLITE_URL,
-  TEST_SQLITE_URL,
   ensureSqliteDir,
 } from '../helpers/sqlite.ts'
 
@@ -480,7 +479,9 @@ describe('API server', async () => {
 
   describe('GET /api/placeholders', () => {
     it('returns placeholder rows with id, label, and createdAt', async () => {
-      const labels = await seedPlaceholders({ url: TEST_SQLITE_URL })
+      const stamp = Date.now()
+      const labels = [`alpha-${stamp}`, `beta-${stamp}`, `gamma-${stamp}`]
+      await insertPlaceholders(labels)
 
       const rows = await $fetch('/api/placeholders')
 
@@ -499,9 +500,10 @@ describe('API server', async () => {
   })
 
   describe('e2e database isolation', () => {
-    async function choreCount(url: string): Promise<number | null> {
-      ensureSqliteDir(url)
-      const client = createClient({ url })
+    /** Open the *development* DB only — the server does not hold that file. */
+    async function choreCountDev(): Promise<number | null> {
+      ensureSqliteDir(DEV_SQLITE_URL)
+      const client = createClient({ url: DEV_SQLITE_URL })
       try {
         const result = await client.execute('SELECT COUNT(*) AS n FROM chores')
         return Number(result.rows[0]?.n ?? 0)
@@ -516,8 +518,8 @@ describe('API server', async () => {
     }
 
     it('writes chores to the test DB and leaves the development DB unchanged', async () => {
-      const beforeDev = await choreCount(DEV_SQLITE_URL)
-      const beforeTest = await choreCount(TEST_SQLITE_URL)
+      const beforeDev = await choreCountDev()
+      const beforeTest = (await $fetch<Chore[]>('/api/chores')).length
 
       const created = await $fetch<Chore>('/api/chores', {
         method: 'POST',
@@ -526,11 +528,11 @@ describe('API server', async () => {
 
       expect(created.id).toEqual(expect.any(Number))
 
-      const afterDev = await choreCount(DEV_SQLITE_URL)
-      const afterTest = await choreCount(TEST_SQLITE_URL)
+      const afterDev = await choreCountDev()
+      const afterTest = (await $fetch<Chore[]>('/api/chores')).length
 
       expect(afterDev).toBe(beforeDev)
-      expect(afterTest).toBe((beforeTest ?? 0) + 1)
+      expect(afterTest).toBe(beforeTest + 1)
     })
   })
 })

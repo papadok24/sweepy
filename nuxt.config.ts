@@ -32,7 +32,13 @@ export default defineNuxtConfig({
   // Without it NuxtHub never runs setupCloudflare and `.output/server/wrangler.json`
   // is not written — `wrangler deploy` then fails with ENOENT.
   nitro: {
-    ...(isDeploy ? { preset: 'cloudflare_module' as const } : {}),
+    ...(isDeploy
+      ? {
+          preset: 'cloudflare_module' as const,
+          // Vitest-only fixture routes — never ship to the Worker.
+          ignore: ['**/server/api/__test__/**'],
+        }
+      : {}),
     // Workers Logs + invocation metadata (Cloudflare dashboard Observability).
     cloudflare: {
       wrangler: {
