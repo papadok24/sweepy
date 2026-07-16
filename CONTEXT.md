@@ -35,3 +35,7 @@ _Avoid_: User timezone (for week reset), per-device week key
 **Completion**:
 The record that a specific chore, on a specific day bucket, was done in a specific week. Any slot may be checked off at any point during its week (days are buckets, not deadlines). Completions are anonymous today (no household member attribution) and survive later changes to the schedule; a future login may add optional “done by” attribution without changing Week ownership. Unchecking a mistake removes the record.
 _Avoid_: Check-in, done log
+
+**Full sweep**:
+When every Assignment in today's Day bucket has a Completion for the current Week. Empty today (no Assignments) is not a Full sweep.
+_Avoid_: Day clear, day complete, all done, perfect day

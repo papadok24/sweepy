@@ -110,6 +110,24 @@ Space scale: 4 / 8 / 12 / 16 / 24 / 32 / 48 (`--space-1` … `--space-7`).
 - Soft-stack: rapid repeats use `.celebrate--soft` (lighter motion, shorter sparkle).
 - `prefers-reduced-motion: reduce` — collapse celebrations to an instant state change (no sparkle travel).
 
+### Full sweep (Today milestone)
+
+Fires when the board **transitions** into a Full sweep: every Assignment in **today’s** Day bucket has a Completion for the **current Week**. Empty today (no Assignments) is never a Full sweep. Glossary: `CONTEXT.md`.
+
+| Rule | Contract |
+| --- | --- |
+| **Surface** | Today / current-day surface only (`.today-shell`). Completing the last open Today slot from the Week grid does **not** fire Full sweep unless that check happens **on Today**. |
+| **Transition only** | Fire on incomplete → Full sweep. Landing on an already-complete Today does not re-fire. |
+| **Replay** | After an uncheck, when the board returns to Full sweep again, celebrate again. |
+| **Last check** | **Replace** the per-chore row celebrate — no stacked `.celebrate` + Full sweep on the same check. |
+| **Cheer beat** | Board overlay: soft wash over the Today shell, list dims underneath, large centered Sweepy (`/img/sweepy.png`), copy **“Full sweep!”** / **“Every chore today — checked.”** |
+| **Duration** | ~1.8s auto-play, then rest. |
+| **Reduced motion** | Static overlay (no wash/pop travel); still show the beat, then rest. |
+| **Audio** | Distinct cue `/audio/sweepy_full_sweep.wav` at volume `1` (asset may land with or just after visual). Same playback rules as other delight cues. |
+| **Haptic** | Later — stronger pattern than `complete`; not required to ship visual/audio. |
+
+CSS hooks: `.full-sweep-overlay` plus `.celebrate-beat` / `.sweepy-mascot--cheer` as needed. Mascot stays out of chore rows (see Mascot).
+
 ### Audio / haptic contracts
 
 | Event | When | Visual | Audio | Haptic (later) |
@@ -117,9 +135,9 @@ Space scale: 4 / 8 / 12 / 16 / 24 / 32 / 48 (`--space-1` … `--space-7`).
 | `complete` | First completion after a quiet gap | Full celebrate | `/audio/sweepy_chore_complete.wav` at volume `1` | Light buzz |
 | `complete-soft` | Rapid follow-up Completions (same 1.5s window as soft celebrate) | Soft celebrate | Same completion WAV at volume `0.45` | Softer or skipped |
 | `add-chore` | After Chore create + Week view refresh both succeed | Drawer closes / board updates | `/audio/sweepy_add_chore.wav` at volume `1` | — |
-| `day-clear` (future) | Last chore in Today’s bucket done | Louder milestone variant | Distinct fanfare | Stronger pattern |
+| `full-sweep` | Board transitions into Full sweep on Today (see above) | Board overlay cheer (~1.8s) | `/audio/sweepy_full_sweep.wav` at volume `1` | Stronger pattern |
 
-Playback is best effort via one client-only sound interface that preloads and reuses the two WAV players. Repeated triggers restart the existing cue (no overlapping players). Rejected or unsupported media playback is ignored and never alters Chore creation, Completion persistence, or visual feedback. Browser / OS mute remains authoritative — no in-app sound preference. Reduced motion stays independent of audio.
+Playback is best effort via one client-only sound interface that preloads and reuses WAV players per cue. Repeated triggers restart the existing cue (no overlapping players). Rejected or unsupported media playback is ignored and never alters Chore creation, Completion persistence, or visual feedback. Browser / OS mute remains authoritative — no in-app sound preference. Reduced motion stays independent of audio.
 
 Fallbacks: OS mute → no audible output (actions still succeed); no vibrate API / preference off → no haptic; reduced motion → visual-only instant state (audio unchanged).
 
@@ -173,6 +191,7 @@ Placement: brand chrome, empty panels, celebration beats — **never** inside ev
 | Completion | `.completion.control` | Unchecked / checked (`aria-checked`) |
 | Celebrate | `.celebrate` / `.celebrate--soft` | Motion on successful check |
 | Celebrate beat | `.celebrate-beat` + `.sweepy-mascot--cheer` | Mascot cheer moment (not every row) |
+| Full sweep overlay | `.full-sweep-overlay` + cheer beat | Today milestone; replaces row celebrate on last check |
 | Empty / rest | `.empty-state.surface` (standalone) or `.day-bucket .empty-state` (nested) | Nested empty states do **not** add a second `.surface` — the day bucket is the surface |
 | Mascot | `.sweepy-mascot` + `--idle` / `--cheer` / `--wink` | Expression set |
 | Buttons | `.btn.control` + `.btn--primary` / `.btn--secondary` | Mint primary; lavender/outline secondary |
