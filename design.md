@@ -145,7 +145,7 @@ Fallbacks: OS mute → no audible output (actions still succeed); no vibrate API
 
 - **Today** (home) — current day bucket + completions. Shell recipe: `.today-shell`.
 - **Week** (secondary) — all day buckets for planning. Recipe: `.week-board`.
-- **Sweeps** — celebratory look-back; dedicated route from primary nav (see `CONTEXT.md`).
+- **Sweeps** — celebratory look-back; dedicated route from primary nav (see `CONTEXT.md`). Mobile page layout (prototype [#65](https://github.com/papadok24/sweepy/issues/65) variant C): **Scrapbook** — peak Week postcard, horizontal Week postcards (quiet empty slots on Lately/A while), sticker-shelf chores ordered by sparkles (no place numbers). Not Chronicle (trail-first) or Trophy case (podium-first). Prototype branch `prototype/65-sweeps-page`.
 - **Primary nav (mobile, four controls)** — when Sweeps sits beside Today / Week / Add chore: **wrap 2×2** equal chunky `.btn.control` peers (prototype [#63](https://github.com/papadok24/sweepy/issues/63) variant A). Not a compact icon strip or a sticky thumb dock.
 - **Mobile-first** — stacked day sections by default.
 - **Wide container** — `.week-board` becomes columns via **container queries** (not viewport-only).

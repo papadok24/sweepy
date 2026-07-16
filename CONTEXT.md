@@ -39,3 +39,7 @@ _Avoid_: Check-in, done log
 **Full sweep**:
 When every Assignment in today's Day bucket has a Completion for the current Week. Empty today (no Assignments) is not a Full sweep.
 _Avoid_: Day clear, day complete, all done, perfect day
+
+**Sweeps**:
+The celebratory look-back surface for household Completions — how many over recent Weeks or Forever, and how often each Chore has been completed. A dedicated route reached from primary nav; playful filters (Lately / A while / Forever) with plain-language definitions nearby. In UI copy, one Completion counts as a **sparkle** (plural **sparkles**) — e.g. ranked lists, empty states, peaks. The ranked per-Chore list only includes Chores with at least one sparkle in the active filter window (zeros are omitted; archived Chores appear there only when they have Completions in range). Not a metrics dashboard, not member comparison (Completions stay anonymous).
+_Avoid_: Stats, analytics, reports, leaderboard; calling a Completion a sweep / check / completion in Sweeps UI; zero-sparkle rows on the ranked list
