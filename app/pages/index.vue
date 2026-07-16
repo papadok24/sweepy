@@ -18,7 +18,7 @@ const {
   dismissSyncNotice,
 } = useWeekStore()
 
-const { playAddChore, playComplete } = useChoreSounds()
+const { playAddChore, playComplete, playFullSweep } = useChoreSounds()
 
 const todayLabel = computed(() => {
   const index = todayIndex.value
@@ -235,18 +235,20 @@ async function confirmArchive() {
  * full sparkle on a completion after a quiet gap, soft sparkle on rapid
  * repeats. Cleared once the animation has played so completed rows rest
  * with no lingering pseudo-element to flicker on unrelated re-renders.
+ * Full sweep (Today milestone) replaces row celebrate on the last Today check.
  */
 const RAPID_REPEAT_MS = 1500
 const CELEBRATE_CLEAR_MS = 400 // > --motion-med (280ms)
+const FULL_SWEEP_MS = 1800
+
+type CelebrateSurface = 'today' | 'week'
 
 const celebratingKey = ref<string | null>(null)
 const celebrateSoft = ref(false)
+const fullSweepActive = ref(false)
 let lastCompletedAt = 0
 let celebrateTimer: ReturnType<typeof setTimeout> | undefined
-
-onBeforeUnmount(() => {
-  if (celebrateTimer !== undefined) clearTimeout(celebrateTimer)
-})
+let fullSweepTimer: ReturnType<typeof setTimeout> | undefined
 
 function celebrationClass(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
   const active = entry.completed
@@ -274,7 +276,66 @@ function ariaLabelFor(entry: WeekDayEntry) {
     : `${entry.choreName}, not completed`
 }
 
-function onToggle(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
+/** True when every today Assignment currently has a Completion. */
+function isTodayFullSweep(): boolean {
+  const slots = todayAssignments.value
+  return slots.length > 0 && slots.every(slot => slot.completed)
+}
+
+/** True when completing this today slot leaves every today Assignment done. */
+function isFullSweepTransition(choreId: number, dayOfWeek: number): boolean {
+  if (dayOfWeek !== todayIndex.value) return false
+  const slots = todayAssignments.value
+  if (slots.length === 0) return false
+  return slots.every(slot =>
+    slot.choreId === choreId ? true : slot.completed,
+  )
+}
+
+function clearFullSweep() {
+  fullSweepActive.value = false
+  if (fullSweepTimer !== undefined) {
+    clearTimeout(fullSweepTimer)
+    fullSweepTimer = undefined
+  }
+}
+
+function startFullSweep() {
+  if (celebrateTimer !== undefined) clearTimeout(celebrateTimer)
+  celebratingKey.value = null
+  playFullSweep()
+  fullSweepActive.value = true
+  if (fullSweepTimer !== undefined) clearTimeout(fullSweepTimer)
+  fullSweepTimer = setTimeout(() => {
+    clearFullSweep()
+  }, FULL_SWEEP_MS)
+}
+
+// Drop a false cheer if optimistic Full sweep reconciles away (or unchecks mid-beat).
+watch(todayAssignments, () => {
+  if (fullSweepActive.value && !isTodayFullSweep()) clearFullSweep()
+})
+
+function onHashChange() {
+  if (fullSweepActive.value) clearFullSweep()
+}
+
+onMounted(() => {
+  window.addEventListener('hashchange', onHashChange)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('hashchange', onHashChange)
+  if (celebrateTimer !== undefined) clearTimeout(celebrateTimer)
+  clearFullSweep()
+})
+
+function onToggle(
+  choreId: number,
+  dayOfWeek: number,
+  entry: WeekDayEntry,
+  surface: CelebrateSurface,
+) {
   if (!canToggle.value) return
   const willComplete = !entry.completed
   toggleCompletion(choreId, dayOfWeek)
@@ -283,6 +344,11 @@ function onToggle(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
 
   if (!willComplete) {
     celebratingKey.value = null
+    return
+  }
+
+  if (surface === 'today' && isFullSweepTransition(choreId, dayOfWeek)) {
+    startFullSweep()
     return
   }
 
@@ -360,7 +426,12 @@ function onToggle(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
       </button>
     </div>
 
-    <section id="today" class="today-shell surface" aria-labelledby="today-heading">
+    <section
+      id="today"
+      class="today-shell surface"
+      :class="{ 'today-shell--full-sweep': fullSweepActive }"
+      aria-labelledby="today-heading"
+    >
       <div class="today-shell__header">
         <h1 id="today-heading">Today</h1>
         <p class="brand-lockup__tag">{{ todayLabel }} · current day bucket</p>
@@ -417,7 +488,7 @@ function onToggle(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
               :disabled="!canToggle"
               :data-week-chore="entry.choreId"
               :data-day-of-week="todayIndex"
-              @click="onToggle(entry.choreId, todayIndex!, entry)"
+              @click="onToggle(entry.choreId, todayIndex!, entry, 'today')"
             >
               <span class="completion__mark" aria-hidden="true" />
             </button>
@@ -449,14 +520,30 @@ function onToggle(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
           </p>
         </div>
 
-        <div class="celebrate-beat surface" data-celebrate-beat>
-          <span
-            class="sweepy-mascot sweepy-mascot--sm sweepy-mascot--cheer"
-            data-sweepy-expression="cheer"
-            aria-hidden="true"
-            title="Sweepy cheer"
-          />
-          <p class="celebrate-beat__copy">Nice — chore complete!</p>
+        <div
+          v-if="fullSweepActive"
+          class="full-sweep-overlay"
+          data-full-sweep-overlay
+          role="status"
+          aria-live="polite"
+        >
+          <div class="celebrate-beat full-sweep-overlay__beat">
+            <AppImg
+              class="sweepy-mascot sweepy-mascot--cheer"
+              data-sweepy-expression="cheer"
+              src="/img/sweepy.png"
+              alt=""
+              width="120"
+              height="120"
+              loading="eager"
+              aria-hidden="true"
+              title="Sweepy cheer"
+            />
+            <div class="full-sweep-overlay__copy">
+              <p class="celebrate-beat__copy">Full sweep!</p>
+              <p class="full-sweep-overlay__sub">Every chore today — checked.</p>
+            </div>
+          </div>
         </div>
       </template>
     </section>
@@ -787,7 +874,7 @@ function onToggle(choreId: number, dayOfWeek: number, entry: WeekDayEntry) {
                 :disabled="!canToggle"
                 :data-week-chore="entry.choreId"
                 :data-day-of-week="day.dayOfWeek"
-                @click="onToggle(entry.choreId, day.dayOfWeek, entry)"
+                @click="onToggle(entry.choreId, day.dayOfWeek, entry, 'week')"
               >
                 <span class="completion__mark" aria-hidden="true" />
               </button>

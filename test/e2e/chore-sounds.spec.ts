@@ -138,15 +138,17 @@ describe('chore interaction sounds', async () => {
     expect(playsFor((await readSoundProbe(page)).plays, ADD_CHORE_SRC)).toHaveLength(0)
   })
 
-  it('plays the completion cue when checking off from Today', async () => {
+  it('plays the completion cue when checking off a mid-list Today slot', async () => {
+    // Two today Assignments so this check is not a Full sweep (issue #56).
     const board = await $fetch<WeekView>('/api/week')
     const today = board.todayDayOfWeek
-    const unique = `Sound complete today ${Date.now()}`
-    const chore = await createChore(unique)
-    await assignChore(chore.id, today)
+    const a = await createChore(`Sound complete today A ${Date.now()}`)
+    const b = await createChore(`Sound complete today B ${Date.now()}`)
+    await assignChore(a.id, today)
+    await assignChore(b.id, today)
 
     const page = await createPage('/')
-    const todayBox = `#today ${checkboxSelector(chore.id, today)}`
+    const todayBox = `#today ${checkboxSelector(a.id, today)}`
     await page.waitForSelector(todayBox)
     await installSoundProbe(page)
     await clearSoundPlays(page)

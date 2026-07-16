@@ -49,6 +49,9 @@ export async function setupE2e(
     browserOptions: browser
       ? { type: options.browserType ?? 'webkit' }
       : undefined,
+    // @nuxt/test-utils defaults teardownTimeout to 30s on Linux; heavy
+    // browser suites (many createPage calls) can exceed that on CI afterAll.
+    teardownTimeout: 120_000,
     nuxtConfig: {
       hub: {
         dir: hubDir,
