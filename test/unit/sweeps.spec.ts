@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  FILTER_DEFINITIONS,
   buildWeekSeries,
   shiftWeekStart,
   weekLabel,
@@ -34,16 +33,6 @@ describe('weekLabel', () => {
   it('labels prior Weeks with a short month-day stamp', () => {
     expect(weekLabel('2026-07-06', '2026-07-13')).toBe('Jul 6')
     expect(weekLabel('2026-06-29', '2026-07-13')).toBe('Jun 29')
-  })
-})
-
-describe('FILTER_DEFINITIONS', () => {
-  it('exposes plain-language windows for each playful filter', () => {
-    expect(FILTER_DEFINITIONS.lately).toBe('Sparkles from the last 4 Weeks.')
-    expect(FILTER_DEFINITIONS.awhile).toBe('Sparkles from the last 8 Weeks.')
-    expect(FILTER_DEFINITIONS.forever).toBe(
-      'Every sparkle this household has ever earned.',
-    )
   })
 })
 

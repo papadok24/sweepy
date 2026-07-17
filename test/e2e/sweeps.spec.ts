@@ -94,8 +94,19 @@ describe('Sweeps page + primary nav', async () => {
       const filters = page.locator('[aria-label="Time window"] .sweeps-chip')
       expect(await filters.count()).toBe(3)
 
-      await page.waitForSelector('.sweeps-stickers .sweeps-sticker', { timeout: READY_MS })
+      const chipHeights = await page.evaluate(() => {
+        const chips = [...document.querySelectorAll<HTMLElement>('[aria-label="Time window"] .sweeps-chip')]
+        return chips.map(el => el.getBoundingClientRect().height)
+      })
+      expect(Math.min(...chipHeights)).toBeGreaterThanOrEqual(44)
+
+      await page.waitForSelector('.sweeps-stickers .sweeps-sticker.surface', { timeout: READY_MS })
       expect(await page.locator('.sweeps-stickers').innerText()).toContain(sparkleChore.name)
+
+      const firstCard = page.locator('.sweeps-card').first()
+      await firstCard.focus()
+      expect(await page.evaluate(() => document.activeElement?.classList.contains('sweeps-card')))
+        .toBe(true)
 
       // Quiet empty slot copy should appear when a zero Week is in the strip.
       const quiet = page.locator('.sweeps-card__quiet')

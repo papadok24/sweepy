@@ -1,27 +1,9 @@
 <script setup lang="ts">
-type SweepsFilter = 'lately' | 'awhile' | 'forever'
-
-type SweepsWeek = {
-  weekId: string
-  label: string
-  sparkles: number
-  isCurrent: boolean
-}
-
-type SweepsSnapshot = {
-  filter: SweepsFilter
-  definition: string
-  totalSparkles: number
-  weeks: SweepsWeek[]
-  chores: Array<{
-    choreId: number
-    name: string
-    sparkles: number
-    archived?: boolean
-  }>
-  peak: SweepsWeek | null
-  empty: boolean
-}
+import type {
+  SweepsFilter,
+  SweepsSnapshot,
+  SweepsWeekSparkle,
+} from '../../server/utils/sweeps'
 
 const FILTERS: { key: SweepsFilter, label: string }[] = [
   { key: 'lately', label: 'Lately' },
@@ -47,7 +29,7 @@ function setFilter(next: SweepsFilter) {
   filter.value = next
 }
 
-function weekCardLabel(week: SweepsWeek) {
+function weekCardLabel(week: SweepsWeekSparkle) {
   if (week.sparkles === 0) return `${week.label}, a quiet Week`
   return `${week.label}, ${week.sparkles} sparkles`
 }
@@ -123,7 +105,11 @@ function weekCardLabel(week: SweepsWeek) {
         </button>
       </div>
 
-      <template v-else-if="snapshot">
+      <div
+        v-else-if="snapshot"
+        :key="filter"
+        class="sweeps-scrapbook"
+      >
         <div
           v-if="snapshot.empty"
           class="empty-state surface sweeps__empty"
@@ -162,7 +148,6 @@ function weekCardLabel(week: SweepsWeek) {
             </h2>
             <div
               class="sweeps-cards"
-              tabindex="0"
               role="region"
               aria-label="Week sparkle postcards"
             >
@@ -175,6 +160,7 @@ function weekCardLabel(week: SweepsWeek) {
                   'sweeps-card--current': week.isCurrent,
                   'sweeps-card--peak': snapshot.peak?.weekId === week.weekId,
                 }"
+                tabindex="0"
                 :aria-label="weekCardLabel(week)"
               >
                 <p class="sweeps-card__label">{{ week.label }}</p>
@@ -206,20 +192,20 @@ function weekCardLabel(week: SweepsWeek) {
               <li
                 v-for="chore in snapshot.chores"
                 :key="chore.choreId"
-                class="sweeps-sticker"
+                class="sweeps-sticker surface"
                 :class="{ 'sweeps-sticker--archived': chore.archived }"
               >
                 <span class="sweeps-sticker__name">{{ chore.name }}</span>
                 <span class="sweeps-sticker__n">{{ chore.sparkles }}</span>
                 <span
                   v-if="chore.archived"
-                  class="sweeps-archived"
+                  class="sweeps-archived surface"
                 >archived</span>
               </li>
             </ul>
           </section>
         </template>
-      </template>
+      </div>
     </div>
   </div>
 </template>

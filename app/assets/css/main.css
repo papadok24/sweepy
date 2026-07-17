@@ -771,6 +771,23 @@
     gap: var(--space-5);
   }
 
+  .sweeps-scrapbook {
+    display: grid;
+    gap: var(--space-5);
+    animation: sweeps-settle var(--motion-med) var(--ease-spring);
+  }
+
+  @keyframes sweeps-settle {
+    from {
+      opacity: 0.72;
+      transform: translateY(var(--space-2));
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
   .sweeps-head {
     display: grid;
     gap: var(--space-4);
@@ -883,16 +900,16 @@
     display: flex;
     gap: var(--space-3);
     overflow-x: auto;
-    padding: 0.2rem 0.15rem var(--space-2);
+    padding: var(--space-1) var(--space-1) var(--space-2);
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
   }
 
   .sweeps-card {
-    flex: 0 0 9.5rem;
+    flex: 0 0 calc(var(--space-7) * 3 + var(--space-2));
     scroll-snap-align: start;
     padding: var(--space-4);
-    min-height: 8.5rem;
+    min-height: calc(var(--space-6) * 4 + var(--space-2));
     display: grid;
     align-content: space-between;
     box-shadow: var(--shadow-soft);
@@ -967,6 +984,7 @@
     gap: var(--space-2);
     padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-pill);
+    box-shadow: none;
     background: color-mix(in oklab, var(--color-accent-soft) 50%, var(--color-surface));
     font-size: var(--font-size-sm);
     font-weight: 700;
@@ -985,13 +1003,20 @@
   .sweeps-archived {
     display: inline-block;
     margin-inline-start: var(--space-1);
-    padding: 0.1rem 0.45rem;
+    padding: var(--space-1) var(--space-2);
     border-radius: var(--radius-pill);
+    box-shadow: none;
     background: var(--color-surface);
     color: var(--color-text-muted);
     font-size: var(--font-size-sm);
     font-weight: 700;
     vertical-align: middle;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sweeps-scrapbook {
+      animation: none;
+    }
   }
 
   /* Add-chore bottom drawer (native <dialog> + showModal) */

@@ -56,12 +56,8 @@ describe('GET /api/sweeps', async () => {
         empty: true,
         peak: null,
         chores: [],
+        weeks: [],
       }),
-    )
-    expect(snapshot.weeks).toHaveLength(4)
-    expect(snapshot.weeks.every(w => w.sparkles === 0)).toBe(true)
-    expect(snapshot.weeks[0]).toEqual(
-      expect.objectContaining({ weekId: currentWeek, isCurrent: true }),
     )
   })
 

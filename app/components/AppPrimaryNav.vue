@@ -1,11 +1,12 @@
 <script setup lang="ts">
 /**
  * Primary nav — four equal chunky controls in a wrap 2×2 (design.md / #63).
- * Today & Week stay board anchors; Sweeps is its own route; Add opens the board drawer
- * (or lands on `/?add=1` when already on Sweeps).
+ * Today & Week stay board anchors (no aria-current — both share the board page);
+ * Sweeps is its own route and owns aria-current="page" there; Add opens the board
+ * drawer (or lands on `/?add=1` when already on Sweeps).
  */
 const props = defineProps<{
-  /** Active surface for aria-current. */
+  /** Which primary surface is open — Sweeps owns aria-current; board does not. */
   active?: 'board' | 'sweeps'
   /**
    * When set, Add chore is a link (Sweeps → board Add flow).
@@ -33,7 +34,6 @@ const weekHref = computed(() => (props.active === 'sweeps' ? '/#week' : '#week')
       class="btn control"
       :class="active === 'board' ? 'btn--primary' : 'btn--secondary'"
       :href="todayHref"
-      :aria-current="active === 'board' ? 'page' : undefined"
     >
       <Icon name="mingcute:calendar-day-line" data-design-icon aria-hidden="true" />
       Today

@@ -62,26 +62,28 @@ export default eventHandler(async (event): Promise<SweepsSnapshot> => {
     sparklesByChore.set(row.choreId, (sparklesByChore.get(row.choreId) ?? 0) + 1)
   }
 
-  const weeks = buildWeekSeries({
-    filter,
-    currentWeekStart,
-    sparklesByWeek,
-  })
-
   const totalSparkles = [...sparklesByChore.values()].reduce((sum, n) => sum + n, 0)
   const empty = totalSparkles === 0
 
   if (empty) {
+    // No quiet Week runway when the whole window is empty (US23) — clients
+    // must not render a zero wall from `weeks` alone.
     return {
       filter,
       definition: FILTER_DEFINITIONS[filter],
       totalSparkles: 0,
-      weeks,
+      weeks: [],
       chores: [],
       peak: null,
       empty: true,
     }
   }
+
+  const weeks = buildWeekSeries({
+    filter,
+    currentWeekStart,
+    sparklesByWeek,
+  })
 
   const choreIds = [...sparklesByChore.keys()]
   const choreRows = choreIds.length === 0
