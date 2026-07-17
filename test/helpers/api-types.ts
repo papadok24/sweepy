@@ -34,3 +34,30 @@ export type WeekView = {
     }>
   }>
 }
+
+export type SweepsFilter = 'lately' | 'awhile' | 'forever'
+
+export type SweepsSnapshot = {
+  filter: SweepsFilter
+  definition: string
+  totalSparkles: number
+  weeks: Array<{
+    weekId: string
+    label: string
+    sparkles: number
+    isCurrent: boolean
+  }>
+  chores: Array<{
+    choreId: number
+    name: string
+    sparkles: number
+    archived?: boolean
+  }>
+  peak: {
+    weekId: string
+    label: string
+    sparkles: number
+    isCurrent: boolean
+  } | null
+  empty: boolean
+}

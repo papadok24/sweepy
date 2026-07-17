@@ -28,7 +28,7 @@ const todayLabel = computed(() => {
 
 /** Add-chore bottom drawer (issue #27) — await-and-refresh, not optimistic. */
 const drawerRef = ref<HTMLDialogElement | null>(null)
-const addChoreOpenBtn = ref<HTMLButtonElement | null>(null)
+const primaryNav = ref<{ addOpenBtn: HTMLButtonElement | null } | null>(null)
 const choreName = ref('')
 const choreNotes = ref('')
 const selectedDays = ref<number[]>([])
@@ -48,13 +48,23 @@ function openAddChore() {
   drawerRef.value?.showModal()
 }
 
+/** Sweeps Add chore lands here with `?add=1` (issue #66). */
+const route = useRoute()
+const router = useRouter()
+onMounted(() => {
+  if (route.query.add === '1') {
+    openAddChore()
+    router.replace({ path: '/', query: {} })
+  }
+})
+
 function closeAddChore() {
   drawerRef.value?.close()
 }
 
 function onDrawerClose() {
   resetAddChoreForm()
-  addChoreOpenBtn.value?.focus()
+  primaryNav.value?.addOpenBtn?.focus()
 }
 
 function onDrawerClick(event: MouseEvent) {
@@ -388,26 +398,11 @@ function onToggle(
       </div>
     </header>
 
-    <nav class="shell-nav" aria-label="Primary">
-      <a class="btn control btn--primary" href="#today">
-        <Icon name="mingcute:calendar-day-line" data-design-icon aria-hidden="true" />
-        Today
-      </a>
-      <a class="btn control btn--secondary" href="#week">
-        <Icon name="mingcute:calendar-week-line" aria-hidden="true" />
-        Week
-      </a>
-      <button
-        ref="addChoreOpenBtn"
-        type="button"
-        class="btn control btn--secondary"
-        data-add-chore-open
-        @click="openAddChore"
-      >
-        <Icon name="mingcute:add-line" aria-hidden="true" />
-        Add chore
-      </button>
-    </nav>
+    <AppPrimaryNav
+      ref="primaryNav"
+      active="board"
+      @add-chore="openAddChore"
+    />
 
     <div
       v-if="syncNotice"
