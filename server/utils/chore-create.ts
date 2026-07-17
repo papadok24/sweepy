@@ -6,6 +6,7 @@ import type { DayOfWeek } from './chore-schemas'
 export type ChoreInsertValues = {
   name: string
   notes: string | null
+  listItems?: string[]
 }
 
 /**

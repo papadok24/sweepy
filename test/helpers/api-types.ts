@@ -2,6 +2,7 @@ export type Chore = {
   id: number
   name: string
   notes: string | null
+  listItems: string[]
   active: boolean
   createdAt: number
 }
@@ -29,6 +30,7 @@ export type WeekView = {
       choreId: number
       choreName: string
       choreNotes: string | null
+      choreListItems: string[]
       completed: boolean
       completedAt: number | null
     }>

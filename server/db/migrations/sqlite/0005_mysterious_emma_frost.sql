@@ -1,0 +1,1 @@
+ALTER TABLE `chores` ADD `list_items` text DEFAULT '[]' NOT NULL;

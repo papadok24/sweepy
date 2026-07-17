@@ -2,6 +2,7 @@ export type WeekDayEntry = {
   choreId: number
   choreName: string
   choreNotes: string | null
+  choreListItems: string[]
   completed: boolean
   completedAt: number | null
 }
@@ -151,6 +152,11 @@ export function useWeekStore() {
     if (!snapshot) return
 
     const desired = new Set(input.days)
+    const existingListItems = snapshot.days
+      .flatMap(d => d.assignments)
+      .find(a => a.choreId === input.choreId)
+      ?.choreListItems ?? []
+
     for (const day of snapshot.days) {
       const existing = day.assignments.find(a => a.choreId === input.choreId)
       if (desired.has(day.dayOfWeek)) {
@@ -163,6 +169,7 @@ export function useWeekStore() {
             choreId: input.choreId,
             choreName: input.name,
             choreNotes: input.notes,
+            choreListItems: [...existingListItems],
             completed: false,
             completedAt: null,
           })
@@ -221,6 +228,44 @@ export function useWeekStore() {
     })
   }
 
+  /**
+   * Patch List labels on every Week membership for a Chore.
+   * Used after await-settled List add/remove (cue count must not lie).
+   */
+  function applyListItemsLocally(choreId: number, listItems: string[]) {
+    const snapshot = week.value
+    if (!snapshot) return
+
+    for (const day of snapshot.days) {
+      const entry = day.assignments.find(a => a.choreId === choreId)
+      if (entry) entry.choreListItems = [...listItems]
+    }
+    triggerRef(week)
+  }
+
+  /**
+   * Await List prepend, then patch local Week (ADR 0006 honesty for Today cue).
+   * Soft-cap / validation errors propagate to the caller.
+   */
+  async function addChoreListItem(choreId: number, label: string) {
+    const result = await $fetch<{ listItems: string[] }>(
+      `/api/chores/${choreId}/list-items`,
+      { method: 'POST', body: { label } },
+    )
+    applyListItemsLocally(choreId, result.listItems)
+    return result.listItems
+  }
+
+  /** Await List remove-by-index, then patch local Week. */
+  async function removeChoreListItem(choreId: number, index: number) {
+    const result = await $fetch<{ listItems: string[] }>(
+      `/api/chores/${choreId}/list-items/${index}`,
+      { method: 'DELETE' },
+    )
+    applyListItemsLocally(choreId, result.listItems)
+    return result.listItems
+  }
+
   /** Await-and-refresh Archive (same settlement family as Add Chore). */
   async function archiveChore(choreId: number) {
     await $fetch(`/api/chores/${choreId}/archive`, { method: 'POST' })
@@ -254,6 +299,8 @@ export function useWeekStore() {
     pending,
     toggleCompletion,
     saveChoreEdit,
+    addChoreListItem,
+    removeChoreListItem,
     archiveChore,
     retryHydrate,
     refreshWeek,

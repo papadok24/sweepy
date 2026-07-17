@@ -156,6 +156,89 @@ describe('API server', async () => {
       )
     })
 
+    it('rejects Notes longer than 4000 characters', async () => {
+      await expect(
+        $fetch('/api/chores', {
+          method: 'POST',
+          body: { name: 'Long notes', notes: 'n'.repeat(4001) },
+        }),
+      ).rejects.toMatchObject({ statusCode: 400 })
+    })
+
+    it('prepends and removes List items and exposes them on Week hydrate', async () => {
+      const created = await $fetch<Chore>('/api/chores', {
+        method: 'POST',
+        body: { name: `List API ${Date.now()}`, days: [0] },
+      })
+
+      expect(created.listItems).toEqual([])
+
+      const afterMilk = await $fetch<{ listItems: string[] }>(
+        `/api/chores/${created.id}/list-items`,
+        { method: 'POST', body: { label: 'milk' } },
+      )
+      expect(afterMilk.listItems).toEqual(['milk'])
+
+      const afterEggs = await $fetch<{ listItems: string[] }>(
+        `/api/chores/${created.id}/list-items`,
+        { method: 'POST', body: { label: 'eggs' } },
+      )
+      expect(afterEggs.listItems).toEqual(['eggs', 'milk'])
+
+      const week = await $fetch<WeekView>('/api/week')
+      expect(findAssignment(week, created.id, 0)?.choreListItems).toEqual([
+        'eggs',
+        'milk',
+      ])
+
+      const afterRemove = await $fetch<{ listItems: string[] }>(
+        `/api/chores/${created.id}/list-items/0`,
+        { method: 'DELETE' },
+      )
+      expect(afterRemove.listItems).toEqual(['milk'])
+    })
+
+    it('rejects empty, overlong, and over-capacity List item adds', async () => {
+      const created = await $fetch<Chore>('/api/chores', {
+        method: 'POST',
+        body: { name: `List caps ${Date.now()}` },
+      })
+
+      await expect(
+        $fetch(`/api/chores/${created.id}/list-items`, {
+          method: 'POST',
+          body: { label: '   ' },
+        }),
+      ).rejects.toMatchObject({ statusCode: 400 })
+
+      await expect(
+        $fetch(`/api/chores/${created.id}/list-items`, {
+          method: 'POST',
+          body: { label: 'z'.repeat(101) },
+        }),
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        statusMessage: expect.stringMatching(/100/),
+      })
+
+      for (let i = 0; i < 50; i += 1) {
+        await $fetch(`/api/chores/${created.id}/list-items`, {
+          method: 'POST',
+          body: { label: `item-${i}` },
+        })
+      }
+
+      await expect(
+        $fetch(`/api/chores/${created.id}/list-items`, {
+          method: 'POST',
+          body: { label: 'one-more' },
+        }),
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        statusMessage: expect.stringMatching(/full/i),
+      })
+    })
+
     it('archives a chore so it leaves the active list', async () => {
       const created = await $fetch<Chore>('/api/chores', {
         method: 'POST',
