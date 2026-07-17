@@ -13,8 +13,16 @@ The household’s durable preferences that affect the shared board — starting 
 _Avoid_: User preferences (for board-wide Week/today), per-device settings
 
 **Chore**:
-A recurring household task (e.g. "Dishes", "Vacuum living room") with a name and optional notes. Chores are archived when retired, never destroyed.
+A recurring household task (e.g. "Dishes", "Vacuum living room") with a name, optional Notes, and at most one List. Chores are archived when retired, never destroyed.
 _Avoid_: Task, todo, job
+
+**Notes**:
+Plain free-text instructions on a Chore (e.g. "use the wood cleaner"). Not rich text; not a List.
+_Avoid_: Description, rich text, checklist, body
+
+**List**:
+At most one ordered collection of plain-text items belonging to a Chore (e.g. grocery items for "go to store"). Distinct from Notes; items are labels only — no quantities, categories, or per-item check-off in the current product language.
+_Avoid_: Checklist, notes, shopping list (as a household-wide entity), todo list
 
 **Assignment**:
 The placement of a chore into a day-of-week bucket. A chore may be assigned to multiple days. Assignments define the *current* schedule only; changing them does not rewrite history.
