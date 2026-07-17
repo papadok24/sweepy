@@ -748,11 +748,275 @@
     }
   }
 
-  /* Demo nav */
+  /* Primary nav — wrap 2×2 equal chunky controls (design.md / #63) */
   .shell-nav {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
+  }
+
+  .shell-nav--wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+  }
+
+  .shell-nav--wrap .btn {
+    width: 100%;
+  }
+
+  /* Sweeps Scrapbook (issue #66) — rewrite from prototype tokens, not throwaway CSS */
+  .sweeps {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .sweeps-scrapbook {
+    display: grid;
+    gap: var(--space-5);
+    animation: sweeps-settle var(--motion-med) var(--ease-spring);
+  }
+
+  @keyframes sweeps-settle {
+    from {
+      opacity: 0.72;
+      transform: translateY(var(--space-2));
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .sweeps-head {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .sweeps-head__brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .sweeps__title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--font-size-display);
+    line-height: 1.1;
+  }
+
+  .sweeps__lede {
+    margin: var(--space-2) 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-md);
+  }
+
+  .sweeps__filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .sweeps__empty {
+    text-align: center;
+    padding: var(--space-6) var(--space-5);
+    display: grid;
+    justify-items: center;
+    gap: var(--space-3);
+  }
+
+  .sweeps-chip {
+    padding-inline: var(--space-4);
+    border-radius: var(--radius-pill);
+    font-weight: 700;
+    background: var(--color-surface);
+    color: var(--color-text);
+    transition:
+      transform var(--motion-fast) var(--ease-spring),
+      background-color var(--motion-fast) ease,
+      box-shadow var(--motion-fast) ease;
+  }
+
+  .sweeps-chip--on {
+    background: var(--color-accent-soft);
+    color: var(--color-accent-strong);
+  }
+
+  .sweeps-bubble {
+    padding: var(--space-4);
+    background: color-mix(in oklab, var(--color-brand-soft) 40%, var(--color-surface));
+    box-shadow: none;
+  }
+
+  .sweeps-bubble__label {
+    margin: 0 0 var(--space-1);
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--color-brand);
+  }
+
+  .sweeps-bubble__body {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+  }
+
+  .sweeps-postcard {
+    padding: var(--space-5);
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .sweeps-postcard--peak {
+    background:
+      radial-gradient(80% 120% at 100% 0%, var(--color-canvas-wash-accent), transparent 55%),
+      color-mix(in oklab, var(--color-brand-soft) 35%, var(--color-surface));
+  }
+
+  .sweeps-postcard h2 {
+    margin: 0;
+    font-size: var(--font-size-xl);
+  }
+
+  .sweeps-postcard__label {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--font-size-2xl);
+    font-weight: 600;
+  }
+
+  .sweeps-postcard__body {
+    margin: 0;
+    color: var(--color-text-muted);
+  }
+
+  .sweeps-section {
+    margin: 0 0 var(--space-3);
+    font-size: var(--font-size-xl);
+  }
+
+  .sweeps-cards {
+    display: flex;
+    gap: var(--space-3);
+    overflow-x: auto;
+    padding: var(--space-1) var(--space-1) var(--space-2);
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sweeps-card {
+    flex: 0 0 calc(var(--space-7) * 3 + var(--space-2));
+    scroll-snap-align: start;
+    padding: var(--space-4);
+    min-height: calc(var(--space-6) * 4 + var(--space-2));
+    display: grid;
+    align-content: space-between;
+    box-shadow: var(--shadow-soft);
+    transition:
+      transform var(--motion-med) var(--ease-spring),
+      background-color var(--motion-fast) ease;
+  }
+
+  .sweeps-card--empty {
+    background: color-mix(in oklab, var(--color-quiet-soft) 45%, var(--color-surface));
+    box-shadow: none;
+  }
+
+  .sweeps-card--peak {
+    box-shadow:
+      var(--shadow-soft),
+      0 0 0 3px color-mix(in oklab, var(--color-brand) 45%, transparent);
+  }
+
+  .sweeps-card--current {
+    background: color-mix(in oklab, var(--color-accent-soft) 40%, var(--color-surface));
+  }
+
+  .sweeps-card__label {
+    margin: 0;
+    font-weight: 700;
+    font-size: var(--font-size-sm);
+  }
+
+  .sweeps-card__n {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--font-size-2xl);
+    font-weight: 600;
+    color: var(--color-accent-strong);
+    line-height: 1;
+  }
+
+  .sweeps-card__n span {
+    display: block;
+    margin-top: var(--space-1);
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: 400;
+    color: var(--color-text-muted);
+  }
+
+  .sweeps-card__quiet {
+    margin: 0;
+    color: var(--color-quiet);
+    font-size: var(--font-size-sm);
+  }
+
+  .sweeps-shelf__hint {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+  }
+
+  .sweeps-stickers {
+    list-style: none;
+    margin: var(--space-3) 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .sweeps-sticker {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-pill);
+    box-shadow: none;
+    background: color-mix(in oklab, var(--color-accent-soft) 50%, var(--color-surface));
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    color: var(--color-text);
+  }
+
+  .sweeps-sticker--archived {
+    background: color-mix(in oklab, var(--color-quiet-soft) 55%, var(--color-surface));
+  }
+
+  .sweeps-sticker__n {
+    font-family: var(--font-display);
+    color: var(--color-accent-strong);
+  }
+
+  .sweeps-archived {
+    display: inline-block;
+    margin-inline-start: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-pill);
+    box-shadow: none;
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    vertical-align: middle;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sweeps-scrapbook {
+      animation: none;
+    }
   }
 
   /* Add-chore bottom drawer (native <dialog> + showModal) */

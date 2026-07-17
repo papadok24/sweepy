@@ -34,3 +34,8 @@ export type WeekView = {
     }>
   }>
 }
+
+export type {
+  SweepsFilter,
+  SweepsSnapshot,
+} from '../../server/utils/sweeps'

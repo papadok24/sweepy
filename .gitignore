@@ -24,3 +24,7 @@ logs
 .env
 .env.*
 !.env.example
+
+# Agent scratch (tickets, temp bodies)
+.scratch/
+
