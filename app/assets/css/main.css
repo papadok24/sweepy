@@ -1147,16 +1147,45 @@
     color: var(--color-text);
   }
 
+  /* Peer Details | List: shared baseline height; List may grow with items. */
+  .edit-chore-tabpanels {
+    display: grid;
+    min-width: 0;
+  }
+
+  .edit-chore-tabpanels > * {
+    grid-area: 1 / 1;
+    min-width: 0;
+  }
+
   .edit-chore-surface {
     display: grid;
     gap: var(--space-3);
     min-width: 0;
+    align-content: start;
+  }
+
+  .edit-chore-surface--inactive {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .edit-chore-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-width: 0;
+    min-height: 0;
   }
 
   .edit-chore-list__body {
-    max-height: 14rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    /* Grow with items past the Details baseline, then scroll. */
+    max-height: min(22rem, 45dvh);
     overflow-x: hidden;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: var(--space-1);
     margin: calc(var(--space-1) * -1);
   }

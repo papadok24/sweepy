@@ -729,94 +729,106 @@ function onToggle(
           </button>
         </div>
 
-        <form
-          v-if="editStep === 'details'"
-          class="edit-chore-surface"
-          data-edit-chore-details
-          @submit.prevent="submitEditChore"
-        >
-          <label class="add-chore-drawer__label" for="edit-chore-name">Name</label>
-          <input
-            id="edit-chore-name"
-            v-model="editName"
-            class="field control"
-            data-edit-chore-name
-            name="name"
-            type="text"
-            autocomplete="off"
-            :disabled="editArchiving"
+        <!--
+          Stack Details + List in one grid cell so tab swaps keep a shared
+          baseline height (Details). List may grow taller with items up to
+          the list-body max-height, then scroll.
+        -->
+        <div class="edit-chore-tabpanels">
+          <form
+            class="edit-chore-surface"
+            :class="{ 'edit-chore-surface--inactive': editStep !== 'details' }"
+            data-edit-chore-details
+            :inert="editStep !== 'details'"
+            :aria-hidden="editStep !== 'details'"
+            @submit.prevent="submitEditChore"
           >
-
-          <label class="add-chore-drawer__label" for="edit-chore-notes">Notes (optional)</label>
-          <textarea
-            id="edit-chore-notes"
-            v-model="editNotes"
-            class="field control field--notes"
-            data-edit-chore-notes
-            name="notes"
-            rows="3"
-            autocomplete="off"
-            placeholder="Add notes"
-            :disabled="editArchiving"
-          />
-
-          <p class="add-chore-drawer__label" id="edit-chore-days-label">Days</p>
-          <div
-            class="add-chore-drawer__days"
-            role="group"
-            aria-labelledby="edit-chore-days-label"
-          >
-            <button
-              v-for="(label, day) in dayLabels"
-              :key="day"
-              type="button"
-              class="btn control add-chore-day"
-              :class="{ 'add-chore-day--selected': isEditDaySelected(day) }"
-              :data-edit-chore-day="day"
-              :aria-pressed="isEditDaySelected(day)"
+            <label class="add-chore-drawer__label" for="edit-chore-name">Name</label>
+            <input
+              id="edit-chore-name"
+              v-model="editName"
+              class="field control"
+              data-edit-chore-name
+              name="name"
+              type="text"
+              autocomplete="off"
               :disabled="editArchiving"
-              @click="toggleEditDay(day)"
             >
-              {{ label }}
+
+            <label class="add-chore-drawer__label" for="edit-chore-notes">Notes (optional)</label>
+            <textarea
+              id="edit-chore-notes"
+              v-model="editNotes"
+              class="field control field--notes"
+              data-edit-chore-notes
+              name="notes"
+              rows="3"
+              autocomplete="off"
+              placeholder="Add notes"
+              :disabled="editArchiving"
+            />
+
+            <p class="add-chore-drawer__label" id="edit-chore-days-label">Days</p>
+            <div
+              class="add-chore-drawer__days"
+              role="group"
+              aria-labelledby="edit-chore-days-label"
+            >
+              <button
+                v-for="(label, day) in dayLabels"
+                :key="day"
+                type="button"
+                class="btn control add-chore-day"
+                :class="{ 'add-chore-day--selected': isEditDaySelected(day) }"
+                :data-edit-chore-day="day"
+                :aria-pressed="isEditDaySelected(day)"
+                :disabled="editArchiving"
+                @click="toggleEditDay(day)"
+              >
+                {{ label }}
+              </button>
+            </div>
+
+            <p
+              v-if="editError"
+              class="add-chore-drawer__error"
+              data-edit-chore-error
+              role="alert"
+            >
+              {{ editError }}
+            </p>
+
+            <button
+              type="submit"
+              class="btn control btn--primary"
+              data-edit-chore-submit
+              :disabled="editArchiving"
+            >
+              Save
             </button>
-          </div>
 
-          <p
-            v-if="editError"
-            class="add-chore-drawer__error"
-            data-edit-chore-error
-            role="alert"
-          >
-            {{ editError }}
-          </p>
+            <button
+              type="button"
+              class="btn control btn--secondary"
+              data-edit-chore-archive
+              :disabled="editArchiving"
+              @click="openArchiveStep"
+            >
+              Archive chore
+            </button>
+          </form>
 
-          <button
-            type="submit"
-            class="btn control btn--primary"
-            data-edit-chore-submit
-            :disabled="editArchiving"
-          >
-            Save
-          </button>
-
-          <button
-            type="button"
-            class="btn control btn--secondary"
-            data-edit-chore-archive
-            :disabled="editArchiving"
-            @click="openArchiveStep"
-          >
-            Archive chore
-          </button>
-        </form>
-
-        <ChoreListEditor
-          v-else-if="editChoreId != null && editStep === 'list'"
-          v-model:items="editListItems"
-          :chore-id="editChoreId"
-          :add-item="addChoreListItem"
-          :remove-item="removeChoreListItem"
-        />
+          <ChoreListEditor
+            v-if="editChoreId != null"
+            v-model:items="editListItems"
+            :class="{ 'edit-chore-surface--inactive': editStep !== 'list' }"
+            :chore-id="editChoreId"
+            :add-item="addChoreListItem"
+            :remove-item="removeChoreListItem"
+            :inert="editStep !== 'list'"
+            :aria-hidden="editStep !== 'list'"
+          />
+        </div>
       </div>
 
       <div

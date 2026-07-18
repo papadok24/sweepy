@@ -65,7 +65,7 @@ async function removeListItem(index: number) {
 
 <template>
   <div
-    class="edit-chore-surface edit-chore-list"
+    class="edit-chore-list"
     data-edit-chore-list
   >
     <div
