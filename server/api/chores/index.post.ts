@@ -22,6 +22,7 @@ export default eventHandler(async (event): Promise<Chore> => {
   const choreValues = {
     name: body.name,
     notes: body.notes ?? null,
+    listItems: [] as string[],
   }
 
   if (days.length === 0) {

@@ -14,6 +14,8 @@ export const chores = sqliteTable('chores', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   notes: text('notes'),
+  /** Ordered plain-text List labels for this Chore (at most one List). */
+  listItems: text('list_items', { mode: 'json' }).$type<string[]>().notNull().default([]),
   active: integer('active', { mode: 'boolean' }).notNull().default(true),
   createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
 })

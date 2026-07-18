@@ -1,22 +1,6 @@
-export type WeekDayEntry = {
-  choreId: number
-  choreName: string
-  choreNotes: string | null
-  completed: boolean
-  completedAt: number | null
-}
+import type { WeekView } from '#shared/types/week'
 
-export type WeekDay = {
-  dayOfWeek: number
-  assignments: WeekDayEntry[]
-}
-
-export type WeekView = {
-  weekStart: string
-  /** Household “today” (0 = Monday … 6 = Sunday) from GET /api/week. */
-  todayDayOfWeek: number
-  days: WeekDay[]
-}
+export type { WeekDayEntry, WeekDay, WeekView } from '#shared/types/week'
 
 /**
  * Local-first this-week store (ADR-0006).
@@ -66,8 +50,8 @@ export function useWeekStore() {
     syncNotice.value = null
     if (noticeTimer !== undefined) {
       clearTimeout(noticeTimer)
-      noticeTimer = undefined
     }
+    noticeTimer = undefined
   }
 
   function showSyncNotice(message: string) {
@@ -151,6 +135,11 @@ export function useWeekStore() {
     if (!snapshot) return
 
     const desired = new Set(input.days)
+    const existingListItems = snapshot.days
+      .flatMap(d => d.assignments)
+      .find(a => a.choreId === input.choreId)
+      ?.choreListItems ?? []
+
     for (const day of snapshot.days) {
       const existing = day.assignments.find(a => a.choreId === input.choreId)
       if (desired.has(day.dayOfWeek)) {
@@ -163,6 +152,7 @@ export function useWeekStore() {
             choreId: input.choreId,
             choreName: input.name,
             choreNotes: input.notes,
+            choreListItems: [...existingListItems],
             completed: false,
             completedAt: null,
           })
@@ -221,6 +211,55 @@ export function useWeekStore() {
     })
   }
 
+  /**
+   * Patch List labels on every Week membership for a Chore.
+   * Used after await-settled List add/remove (cue count must not lie).
+   */
+  function applyListItemsLocally(choreId: number, listItems: string[]) {
+    const snapshot = week.value
+    if (!snapshot) return
+
+    for (const day of snapshot.days) {
+      const entry = day.assignments.find(a => a.choreId === choreId)
+      if (entry) entry.choreListItems = [...listItems]
+    }
+    triggerRef(week)
+  }
+
+  async function settleListMutation(
+    choreId: number,
+    request: Promise<{ listItems: string[] }>,
+  ) {
+    const result = await request
+    applyListItemsLocally(choreId, result.listItems)
+    return result.listItems
+  }
+
+  /**
+   * Await List prepend, then patch local Week (ADR 0006 honesty for Today cue).
+   * Soft-cap / validation errors propagate to the caller.
+   */
+  async function addChoreListItem(choreId: number, label: string) {
+    return settleListMutation(
+      choreId,
+      $fetch<{ listItems: string[] }>(`/api/chores/${choreId}/list-items`, {
+        method: 'POST',
+        body: { label },
+      }),
+    )
+  }
+
+  /** Await List remove-by-index, then patch local Week. */
+  async function removeChoreListItem(choreId: number, index: number) {
+    return settleListMutation(
+      choreId,
+      $fetch<{ listItems: string[] }>(
+        `/api/chores/${choreId}/list-items/${index}`,
+        { method: 'DELETE' },
+      ),
+    )
+  }
+
   /** Await-and-refresh Archive (same settlement family as Add Chore). */
   async function archiveChore(choreId: number) {
     await $fetch(`/api/chores/${choreId}/archive`, { method: 'POST' })
@@ -254,6 +293,8 @@ export function useWeekStore() {
     pending,
     toggleCompletion,
     saveChoreEdit,
+    addChoreListItem,
+    removeChoreListItem,
     archiveChore,
     retryHydrate,
     refreshWeek,

@@ -2,6 +2,7 @@ export type Chore = {
   id: number
   name: string
   notes: string | null
+  listItems: string[]
   active: boolean
   createdAt: number
 }
@@ -20,20 +21,7 @@ export type Completion = {
   completedAt: number
 }
 
-export type WeekView = {
-  weekStart: string
-  todayDayOfWeek: number
-  days: Array<{
-    dayOfWeek: number
-    assignments: Array<{
-      choreId: number
-      choreName: string
-      choreNotes: string | null
-      completed: boolean
-      completedAt: number | null
-    }>
-  }>
-}
+export type { WeekView } from '../../shared/types/week'
 
 export type {
   SweepsFilter,

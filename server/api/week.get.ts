@@ -1,27 +1,10 @@
 import { eq } from 'drizzle-orm'
 import { db, schema } from 'hub:db'
+import type { WeekDay, WeekView } from '#shared/types/week'
+import { parseListItems } from '../utils/chore-list'
 import { currentWeekClock } from '../utils/household-settings'
 
-/** A day-bucket assignment plus its completion status for the current week. */
-export type WeekDayEntry = {
-  choreId: number
-  choreName: string
-  choreNotes: string | null
-  completed: boolean
-  completedAt: number | null
-}
-
-export type WeekDay = {
-  dayOfWeek: number
-  assignments: WeekDayEntry[]
-}
-
-export type WeekView = {
-  weekStart: string
-  /** Household “today” day bucket (0 = Monday … 6 = Sunday). */
-  todayDayOfWeek: number
-  days: WeekDay[]
-}
+export type { WeekDayEntry, WeekDay, WeekView } from '#shared/types/week'
 
 export default eventHandler(async (event): Promise<WeekView> => {
   const { weekStart, todayDayOfWeek } = await currentWeekClock(event)
@@ -32,6 +15,7 @@ export default eventHandler(async (event): Promise<WeekView> => {
       dayOfWeek: schema.choreAssignments.dayOfWeek,
       choreName: schema.chores.name,
       choreNotes: schema.chores.notes,
+      choreListItems: schema.chores.listItems,
     })
     .from(schema.choreAssignments)
     .innerJoin(schema.chores, eq(schema.choreAssignments.choreId, schema.chores.id))
@@ -57,6 +41,7 @@ export default eventHandler(async (event): Promise<WeekView> => {
       choreId: row.choreId,
       choreName: row.choreName,
       choreNotes: row.choreNotes,
+      choreListItems: parseListItems(row.choreListItems),
       completed: Boolean(completion),
       completedAt: completion?.completedAt ?? null,
     })

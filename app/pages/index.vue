@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { WeekDayEntry } from '~/composables/useWeekStore'
+import type { WeekDayEntry } from '#shared/types/week'
+import { getNotesLengthError } from '#shared/utils/chore-limits'
 
 /** Monday-first labels aligned with API dayOfWeek (0 = Mon … 6 = Sun). */
 const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
@@ -12,6 +13,8 @@ const {
   pending,
   toggleCompletion,
   saveChoreEdit,
+  addChoreListItem,
+  removeChoreListItem,
   archiveChore,
   retryHydrate,
   refreshWeek,
@@ -92,6 +95,11 @@ async function submitAddChore() {
     formError.value = 'Pick at least one day.'
     return
   }
+  const notesError = getNotesLengthError(choreNotes.value)
+  if (notesError) {
+    formError.value = notesError
+    return
+  }
 
   formError.value = null
   saving.value = true
@@ -117,21 +125,24 @@ async function submitAddChore() {
   }
 }
 
-/** Edit Chore drawer (#46 / #48 / #49) — twin of Add; Save optimistic, Archive await. */
+/** Edit Chore drawer (#46 / #48 / #49 / #78) — twin of Add; Save optimistic, List await, Archive await. */
 const editDrawerRef = ref<HTMLDialogElement | null>(null)
 const editChoreId = ref<number | null>(null)
 const editName = ref('')
 const editNotes = ref('')
 const editDays = ref<number[]>([])
+const editListItems = ref<string[]>([])
 const editError = ref<string | null>(null)
 const editArchiving = ref(false)
-const editStep = ref<'details' | 'archive'>('details')
+/** Peer Details | List surfaces; archive is a separate confirm step. */
+const editStep = ref<'details' | 'list' | 'archive'>('details')
 
 function resetEditForm() {
   editChoreId.value = null
   editName.value = ''
   editNotes.value = ''
   editDays.value = []
+  editListItems.value = []
   editError.value = null
   editArchiving.value = false
   editStep.value = 'details'
@@ -153,6 +164,7 @@ function hydrateEditFromWeek(choreId: number) {
   editName.value = first.choreName
   editNotes.value = first.choreNotes ?? ''
   editDays.value = membership.map(m => m.dayOfWeek).sort((a, b) => a - b)
+  editListItems.value = [...first.choreListItems]
   editError.value = null
   editArchiving.value = false
   editStep.value = 'details'
@@ -174,6 +186,15 @@ function onEditDrawerClose() {
 
 function onEditDrawerClick(event: MouseEvent) {
   if (event.target === editDrawerRef.value) closeEditChore()
+}
+
+function showEditDetails() {
+  editStep.value = 'details'
+}
+
+function showEditList() {
+  editStep.value = 'list'
+  editError.value = null
 }
 
 function toggleEditDay(day: number) {
@@ -198,6 +219,11 @@ function submitEditChore() {
   }
   if (editDays.value.length === 0) {
     editError.value = 'Pick at least one day.'
+    return
+  }
+  const notesError = getNotesLengthError(editNotes.value)
+  if (notesError) {
+    editError.value = notesError
     return
   }
 
@@ -496,6 +522,18 @@ function onToggle(
             >
               {{ entry.choreName }}
             </button>
+            <button
+              v-if="entry.choreListItems.length > 0"
+              type="button"
+              class="chore-slot__list-cue"
+              :data-today-list-cue="entry.choreId"
+              :data-list-count="entry.choreListItems.length"
+              :aria-label="`Edit ${entry.choreName}, ${entry.choreListItems.length} list items`"
+              @click="openEditChore(entry.choreId)"
+            >
+              <Icon name="mingcute:list-ordered-line" aria-hidden="true" />
+              <span data-today-list-cue-count>{{ entry.choreListItems.length }}</span>
+            </button>
           </li>
         </ul>
 
@@ -582,17 +620,17 @@ function onToggle(
         >
 
         <label class="add-chore-drawer__label" for="add-chore-notes">Notes (optional)</label>
-        <input
+        <textarea
           id="add-chore-notes"
           v-model="choreNotes"
-          class="field control"
+          class="field control field--notes"
           data-add-chore-notes
           name="notes"
-          type="text"
+          rows="3"
           autocomplete="off"
-          placeholder="e.g. use the wood cleaner"
+          placeholder="Add notes"
           :disabled="saving"
-        >
+        />
 
         <p class="add-chore-drawer__label" id="add-chore-days-label">Days</p>
         <div
@@ -644,10 +682,9 @@ function onToggle(
       @close="onEditDrawerClose"
       @click="onEditDrawerClick"
     >
-      <form
-        v-if="editStep === 'details'"
+      <div
+        v-if="editStep !== 'archive'"
         class="add-chore-drawer__panel surface"
-        @submit.prevent="submitEditChore"
       >
         <div class="add-chore-drawer__header">
           <h2 id="edit-chore-heading">Edit chore</h2>
@@ -662,79 +699,137 @@ function onToggle(
           </button>
         </div>
 
-        <label class="add-chore-drawer__label" for="edit-chore-name">Name</label>
-        <input
-          id="edit-chore-name"
-          v-model="editName"
-          class="field control"
-          data-edit-chore-name
-          name="name"
-          type="text"
-          autocomplete="off"
-          :disabled="editArchiving"
-        >
-
-        <label class="add-chore-drawer__label" for="edit-chore-notes">Notes (optional)</label>
-        <input
-          id="edit-chore-notes"
-          v-model="editNotes"
-          class="field control"
-          data-edit-chore-notes
-          name="notes"
-          type="text"
-          autocomplete="off"
-          :disabled="editArchiving"
-        >
-
-        <p class="add-chore-drawer__label" id="edit-chore-days-label">Days</p>
         <div
-          class="add-chore-drawer__days"
-          role="group"
-          aria-labelledby="edit-chore-days-label"
+          class="edit-chore-tabs"
+          role="tablist"
+          aria-label="Chore surfaces"
+          data-edit-chore-tabs
         >
           <button
-            v-for="(label, day) in dayLabels"
-            :key="day"
             type="button"
-            class="btn control add-chore-day"
-            :class="{ 'add-chore-day--selected': isEditDaySelected(day) }"
-            :data-edit-chore-day="day"
-            :aria-pressed="isEditDaySelected(day)"
-            :disabled="editArchiving"
-            @click="toggleEditDay(day)"
+            class="btn control edit-chore-tab"
+            :class="{ 'edit-chore-tab--selected': editStep === 'details' }"
+            role="tab"
+            data-edit-chore-tab="details"
+            :aria-selected="editStep === 'details'"
+            @click="showEditDetails"
           >
-            {{ label }}
+            Details
+          </button>
+          <button
+            type="button"
+            class="btn control edit-chore-tab"
+            :class="{ 'edit-chore-tab--selected': editStep === 'list' }"
+            role="tab"
+            data-edit-chore-tab="list"
+            :aria-selected="editStep === 'list'"
+            @click="showEditList"
+          >
+            List
           </button>
         </div>
 
-        <p
-          v-if="editError"
-          class="add-chore-drawer__error"
-          data-edit-chore-error
-          role="alert"
-        >
-          {{ editError }}
-        </p>
+        <!--
+          Stack Details + List in one grid cell so tab swaps keep a shared
+          baseline height (Details). List may grow taller with items up to
+          the list-body max-height, then scroll.
+        -->
+        <div class="edit-chore-tabpanels">
+          <form
+            class="edit-chore-surface"
+            :class="{ 'edit-chore-surface--inactive': editStep !== 'details' }"
+            data-edit-chore-details
+            :inert="editStep !== 'details'"
+            :aria-hidden="editStep !== 'details'"
+            @submit.prevent="submitEditChore"
+          >
+            <label class="add-chore-drawer__label" for="edit-chore-name">Name</label>
+            <input
+              id="edit-chore-name"
+              v-model="editName"
+              class="field control"
+              data-edit-chore-name
+              name="name"
+              type="text"
+              autocomplete="off"
+              :disabled="editArchiving"
+            >
 
-        <button
-          type="submit"
-          class="btn control btn--primary"
-          data-edit-chore-submit
-          :disabled="editArchiving"
-        >
-          Save
-        </button>
+            <label class="add-chore-drawer__label" for="edit-chore-notes">Notes (optional)</label>
+            <textarea
+              id="edit-chore-notes"
+              v-model="editNotes"
+              class="field control field--notes"
+              data-edit-chore-notes
+              name="notes"
+              rows="3"
+              autocomplete="off"
+              placeholder="Add notes"
+              :disabled="editArchiving"
+            />
 
-        <button
-          type="button"
-          class="btn control btn--secondary"
-          data-edit-chore-archive
-          :disabled="editArchiving"
-          @click="openArchiveStep"
-        >
-          Archive chore
-        </button>
-      </form>
+            <p class="add-chore-drawer__label" id="edit-chore-days-label">Days</p>
+            <div
+              class="add-chore-drawer__days"
+              role="group"
+              aria-labelledby="edit-chore-days-label"
+            >
+              <button
+                v-for="(label, day) in dayLabels"
+                :key="day"
+                type="button"
+                class="btn control add-chore-day"
+                :class="{ 'add-chore-day--selected': isEditDaySelected(day) }"
+                :data-edit-chore-day="day"
+                :aria-pressed="isEditDaySelected(day)"
+                :disabled="editArchiving"
+                @click="toggleEditDay(day)"
+              >
+                {{ label }}
+              </button>
+            </div>
+
+            <p
+              v-if="editError"
+              class="add-chore-drawer__error"
+              data-edit-chore-error
+              role="alert"
+            >
+              {{ editError }}
+            </p>
+
+            <button
+              type="submit"
+              class="btn control btn--primary"
+              data-edit-chore-submit
+              :disabled="editArchiving"
+            >
+              Save
+            </button>
+
+            <button
+              type="button"
+              class="btn control btn--secondary"
+              data-edit-chore-archive
+              :disabled="editArchiving"
+              @click="openArchiveStep"
+            >
+              Archive chore
+            </button>
+          </form>
+
+          <ChoreListEditor
+            v-if="editChoreId != null"
+            v-model:items="editListItems"
+            :class="{ 'edit-chore-surface--inactive': editStep !== 'list' }"
+            :chore-id="editChoreId"
+            :add-item="addChoreListItem"
+            :remove-item="removeChoreListItem"
+            :inert="editStep !== 'list'"
+            :aria-hidden="editStep !== 'list'"
+          />
+        </div>
+      </div>
 
       <div
         v-else
