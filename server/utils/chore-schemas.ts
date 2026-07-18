@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { NOTES_MAX_LENGTH } from '../../app/utils/chore-limits'
+import { NOTES_MAX_LENGTH } from '#shared/utils/chore-limits'
 
 /** 0 = Monday … 6 = Sunday */
 export const dayOfWeekSchema = z.number().int().min(0).max(6)

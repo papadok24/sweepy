@@ -4,7 +4,7 @@ import {
   LIST_ITEM_MAX_LENGTH,
   NOTES_MAX_LENGTH,
   NOTES_TOO_LONG_HINT,
-} from '../../app/utils/chore-limits.ts'
+} from '../../shared/utils/chore-limits.ts'
 import type { WeekView } from '../helpers/api-types.ts'
 import { setupE2e } from '../helpers/e2e-setup.ts'
 import {

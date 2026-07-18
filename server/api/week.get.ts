@@ -1,30 +1,10 @@
 import { eq } from 'drizzle-orm'
 import { db, schema } from 'hub:db'
+import type { WeekDay, WeekView } from '#shared/types/week'
 import { parseListItems } from '../utils/chore-list'
 import { currentWeekClock } from '../utils/household-settings'
 
-/** A day-bucket assignment plus its completion status for the current week. */
-export type WeekDayEntry = {
-  choreId: number
-  choreName: string
-  choreNotes: string | null
-  /** Ordered List labels for Edit; Today cue uses length only. */
-  choreListItems: string[]
-  completed: boolean
-  completedAt: number | null
-}
-
-export type WeekDay = {
-  dayOfWeek: number
-  assignments: WeekDayEntry[]
-}
-
-export type WeekView = {
-  weekStart: string
-  /** Household “today” day bucket (0 = Monday … 6 = Sunday). */
-  todayDayOfWeek: number
-  days: WeekDay[]
-}
+export type { WeekDayEntry, WeekDay, WeekView } from '#shared/types/week'
 
 export default eventHandler(async (event): Promise<WeekView> => {
   const { weekStart, todayDayOfWeek } = await currentWeekClock(event)

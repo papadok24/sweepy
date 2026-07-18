@@ -5,7 +5,7 @@ import {
   LIST_ITEM_MAX_LENGTH,
   LIST_ITEM_TOO_LONG_HINT,
   LIST_MAX_ITEMS,
-} from '../../app/utils/chore-limits'
+} from '#shared/utils/chore-limits'
 
 export type ListItemsResponse = {
   listItems: string[]

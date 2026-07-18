@@ -1,13 +1,6 @@
 <script setup lang="ts">
-import type { WeekDayEntry } from '~/composables/useWeekStore'
-import {
-  LIST_FULL_HINT,
-  LIST_ITEM_MAX_LENGTH,
-  LIST_ITEM_TOO_LONG_HINT,
-  LIST_MAX_ITEMS,
-  NOTES_MAX_LENGTH,
-  NOTES_TOO_LONG_HINT,
-} from '~/utils/chore-limits'
+import type { WeekDayEntry } from '#shared/types/week'
+import { getNotesLengthError } from '#shared/utils/chore-limits'
 
 /** Monday-first labels aligned with API dayOfWeek (0 = Mon … 6 = Sun). */
 const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
@@ -102,8 +95,9 @@ async function submitAddChore() {
     formError.value = 'Pick at least one day.'
     return
   }
-  if (choreNotes.value.length > NOTES_MAX_LENGTH) {
-    formError.value = NOTES_TOO_LONG_HINT
+  const notesError = getNotesLengthError(choreNotes.value)
+  if (notesError) {
+    formError.value = notesError
     return
   }
 
@@ -133,17 +127,13 @@ async function submitAddChore() {
 
 /** Edit Chore drawer (#46 / #48 / #49 / #78) — twin of Add; Save optimistic, List await, Archive await. */
 const editDrawerRef = ref<HTMLDialogElement | null>(null)
-const editListBodyRef = ref<HTMLElement | null>(null)
 const editChoreId = ref<number | null>(null)
 const editName = ref('')
 const editNotes = ref('')
 const editDays = ref<number[]>([])
 const editListItems = ref<string[]>([])
-const editListDraft = ref('')
 const editError = ref<string | null>(null)
-const editListError = ref<string | null>(null)
 const editArchiving = ref(false)
-const editListSaving = ref(false)
 /** Peer Details | List surfaces; archive is a separate confirm step. */
 const editStep = ref<'details' | 'list' | 'archive'>('details')
 
@@ -153,11 +143,8 @@ function resetEditForm() {
   editNotes.value = ''
   editDays.value = []
   editListItems.value = []
-  editListDraft.value = ''
   editError.value = null
-  editListError.value = null
   editArchiving.value = false
-  editListSaving.value = false
   editStep.value = 'details'
 }
 
@@ -178,11 +165,8 @@ function hydrateEditFromWeek(choreId: number) {
   editNotes.value = first.choreNotes ?? ''
   editDays.value = membership.map(m => m.dayOfWeek).sort((a, b) => a - b)
   editListItems.value = [...first.choreListItems]
-  editListDraft.value = ''
   editError.value = null
-  editListError.value = null
   editArchiving.value = false
-  editListSaving.value = false
   editStep.value = 'details'
   return true
 }
@@ -206,7 +190,6 @@ function onEditDrawerClick(event: MouseEvent) {
 
 function showEditDetails() {
   editStep.value = 'details'
-  editListError.value = null
 }
 
 function showEditList() {
@@ -238,8 +221,9 @@ function submitEditChore() {
     editError.value = 'Pick at least one day.'
     return
   }
-  if (editNotes.value.length > NOTES_MAX_LENGTH) {
-    editError.value = NOTES_TOO_LONG_HINT
+  const notesError = getNotesLengthError(editNotes.value)
+  if (notesError) {
+    editError.value = notesError
     return
   }
 
@@ -252,56 +236,6 @@ function submitEditChore() {
     days: [...editDays.value],
   })
   closeEditChore()
-}
-
-async function submitEditListItem() {
-  const choreId = editChoreId.value
-  if (choreId == null) return
-
-  const label = editListDraft.value.trim()
-  if (!label) return
-
-  if (label.length > LIST_ITEM_MAX_LENGTH) {
-    editListError.value = LIST_ITEM_TOO_LONG_HINT
-    return
-  }
-  if (editListItems.value.length >= LIST_MAX_ITEMS) {
-    editListError.value = LIST_FULL_HINT
-    return
-  }
-
-  editListError.value = null
-  editListSaving.value = true
-  try {
-    const next = await addChoreListItem(choreId, label)
-    editListItems.value = next
-    editListDraft.value = ''
-    await nextTick()
-    editListBodyRef.value?.scrollTo({ top: 0 })
-  }
-  catch {
-    editListError.value = 'Couldn’t add that item. Try again.'
-  }
-  finally {
-    editListSaving.value = false
-  }
-}
-
-async function removeEditListItem(index: number) {
-  const choreId = editChoreId.value
-  if (choreId == null) return
-
-  editListError.value = null
-  editListSaving.value = true
-  try {
-    editListItems.value = await removeChoreListItem(choreId, index)
-  }
-  catch {
-    editListError.value = 'Couldn’t remove that item. Try again.'
-  }
-  finally {
-    editListSaving.value = false
-  }
 }
 
 function openArchiveStep() {
@@ -876,86 +810,13 @@ function onToggle(
           </button>
         </form>
 
-        <div
-          v-else
-          class="edit-chore-surface edit-chore-list"
-          data-edit-chore-list
-        >
-          <div
-            ref="editListBodyRef"
-            class="edit-chore-list__body"
-            data-edit-chore-list-body
-          >
-            <p
-              v-if="editListItems.length === 0"
-              class="edit-chore-list__empty"
-              data-edit-chore-list-empty
-            >
-              No items yet
-            </p>
-            <ul
-              v-else
-              class="edit-chore-list__items"
-              data-edit-chore-list-items
-            >
-              <li
-                v-for="(item, index) in editListItems"
-                :key="`${index}-${item}`"
-                class="edit-chore-list__item"
-                data-edit-chore-list-item
-              >
-                <span class="edit-chore-list__label">{{ item }}</span>
-                <button
-                  type="button"
-                  class="btn control btn--secondary edit-chore-list__remove"
-                  data-edit-chore-list-remove
-                  :aria-label="`Remove ${item}`"
-                  :disabled="editListSaving"
-                  @click="removeEditListItem(index)"
-                >
-                  Remove
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          <p
-            v-if="editListError"
-            class="add-chore-drawer__error"
-            data-edit-chore-list-error
-            role="alert"
-          >
-            {{ editListError }}
-          </p>
-
-          <form
-            class="edit-chore-list__add"
-            data-edit-chore-list-add
-            @submit.prevent="submitEditListItem"
-          >
-            <label class="sr-only" for="edit-chore-list-draft">Add list item</label>
-            <input
-              id="edit-chore-list-draft"
-              v-model="editListDraft"
-              class="field control"
-              data-edit-chore-list-draft
-              name="listItem"
-              type="text"
-              autocomplete="off"
-              placeholder="Add item"
-              :disabled="editListSaving"
-            >
-            <button
-              type="submit"
-              class="btn control btn--primary"
-              data-edit-chore-list-submit
-              :disabled="editListSaving"
-              :aria-busy="editListSaving"
-            >
-              Add
-            </button>
-          </form>
-        </div>
+        <ChoreListEditor
+          v-else-if="editChoreId != null && editStep === 'list'"
+          v-model:items="editListItems"
+          :chore-id="editChoreId"
+          :add-item="addChoreListItem"
+          :remove-item="removeChoreListItem"
+        />
       </div>
 
       <div

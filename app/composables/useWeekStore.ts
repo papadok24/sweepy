@@ -1,23 +1,6 @@
-export type WeekDayEntry = {
-  choreId: number
-  choreName: string
-  choreNotes: string | null
-  choreListItems: string[]
-  completed: boolean
-  completedAt: number | null
-}
+import type { WeekView } from '#shared/types/week'
 
-export type WeekDay = {
-  dayOfWeek: number
-  assignments: WeekDayEntry[]
-}
-
-export type WeekView = {
-  weekStart: string
-  /** Household “today” (0 = Monday … 6 = Sunday) from GET /api/week. */
-  todayDayOfWeek: number
-  days: WeekDay[]
-}
+export type { WeekDayEntry, WeekDay, WeekView } from '#shared/types/week'
 
 /**
  * Local-first this-week store (ADR-0006).
@@ -67,8 +50,8 @@ export function useWeekStore() {
     syncNotice.value = null
     if (noticeTimer !== undefined) {
       clearTimeout(noticeTimer)
-      noticeTimer = undefined
     }
+    noticeTimer = undefined
   }
 
   function showSyncNotice(message: string) {
@@ -243,27 +226,38 @@ export function useWeekStore() {
     triggerRef(week)
   }
 
+  async function settleListMutation(
+    choreId: number,
+    request: Promise<{ listItems: string[] }>,
+  ) {
+    const result = await request
+    applyListItemsLocally(choreId, result.listItems)
+    return result.listItems
+  }
+
   /**
    * Await List prepend, then patch local Week (ADR 0006 honesty for Today cue).
    * Soft-cap / validation errors propagate to the caller.
    */
   async function addChoreListItem(choreId: number, label: string) {
-    const result = await $fetch<{ listItems: string[] }>(
-      `/api/chores/${choreId}/list-items`,
-      { method: 'POST', body: { label } },
+    return settleListMutation(
+      choreId,
+      $fetch<{ listItems: string[] }>(`/api/chores/${choreId}/list-items`, {
+        method: 'POST',
+        body: { label },
+      }),
     )
-    applyListItemsLocally(choreId, result.listItems)
-    return result.listItems
   }
 
   /** Await List remove-by-index, then patch local Week. */
   async function removeChoreListItem(choreId: number, index: number) {
-    const result = await $fetch<{ listItems: string[] }>(
-      `/api/chores/${choreId}/list-items/${index}`,
-      { method: 'DELETE' },
+    return settleListMutation(
+      choreId,
+      $fetch<{ listItems: string[] }>(
+        `/api/chores/${choreId}/list-items/${index}`,
+        { method: 'DELETE' },
+      ),
     )
-    applyListItemsLocally(choreId, result.listItems)
-    return result.listItems
   }
 
   /** Await-and-refresh Archive (same settlement family as Add Chore). */
