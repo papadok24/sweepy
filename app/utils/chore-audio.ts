@@ -1,7 +1,7 @@
 /** Public paths for authored chore interaction cues (issue #31 / #56). */
-export const ADD_CHORE_AUDIO_SRC = '/audio/sweepy_add_chore.wav'
-export const COMPLETE_CHORE_AUDIO_SRC = '/audio/sweepy_chore_complete.wav'
-export const FULL_SWEEP_AUDIO_SRC = '/audio/sweepy_full_sweep.wav'
+export const ADD_CHORE_AUDIO_SRC = '/audio/sweepy_add_chore.mp3'
+export const COMPLETE_CHORE_AUDIO_SRC = '/audio/sweepy_chore_complete.mp3'
+export const FULL_SWEEP_AUDIO_SRC = '/audio/sweepy_full_sweep.mp3'
 
 /** Full cue gain for add-chore, normal Completion, and Full sweep. */
 export const FULL_VOLUME = 1

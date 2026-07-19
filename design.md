@@ -123,7 +123,7 @@ Fires when the board **transitions** into a Full sweep: every Assignment in **to
 | **Cheer beat** | Board overlay: soft wash over the Today shell, list dims underneath, large centered Sweepy (`/img/sweepy.png`), copy **“Full sweep!”** / **“Every chore today — checked.”** |
 | **Duration** | ~1.8s auto-play, then rest. |
 | **Reduced motion** | Static overlay (no wash/pop travel); still show the beat, then rest. |
-| **Audio** | Distinct cue `/audio/sweepy_full_sweep.wav` at volume `1` (asset may land with or just after visual). Same playback rules as other delight cues. |
+| **Audio** | Distinct cue `/audio/sweepy_full_sweep.mp3` at volume `1` (asset may land with or just after visual). Same playback rules as other delight cues. |
 | **Haptic** | Later — stronger pattern than `complete`; not required to ship visual/audio. |
 
 CSS hooks: `.full-sweep-overlay` plus `.celebrate-beat` / `.sweepy-mascot--cheer` as needed. Mascot stays out of chore rows (see Mascot).
@@ -132,12 +132,12 @@ CSS hooks: `.full-sweep-overlay` plus `.celebrate-beat` / `.sweepy-mascot--cheer
 
 | Event | When | Visual | Audio | Haptic (later) |
 | --- | --- | --- | --- | --- |
-| `complete` | First completion after a quiet gap | Full celebrate | `/audio/sweepy_chore_complete.wav` at volume `1` | Light buzz |
-| `complete-soft` | Rapid follow-up Completions (same 1.5s window as soft celebrate) | Soft celebrate | Same completion WAV at volume `0.45` | Softer or skipped |
-| `add-chore` | After Chore create + Week view refresh both succeed | Drawer closes / board updates | `/audio/sweepy_add_chore.wav` at volume `1` | — |
-| `full-sweep` | Board transitions into Full sweep on Today (see above) | Board overlay cheer (~1.8s) | `/audio/sweepy_full_sweep.wav` at volume `1` | Stronger pattern |
+| `complete` | First completion after a quiet gap | Full celebrate | `/audio/sweepy_chore_complete.mp3` at volume `1` | Light buzz |
+| `complete-soft` | Rapid follow-up Completions (same 1.5s window as soft celebrate) | Soft celebrate | Same completion MP3 at volume `0.45` | Softer or skipped |
+| `add-chore` | After Chore create + Week view refresh both succeed | Drawer closes / board updates | `/audio/sweepy_add_chore.mp3` at volume `1` | — |
+| `full-sweep` | Board transitions into Full sweep on Today (see above) | Board overlay cheer (~1.8s) | `/audio/sweepy_full_sweep.mp3` at volume `1` | Stronger pattern |
 
-Playback is best effort via one client-only sound interface that preloads and reuses WAV players per cue. Repeated triggers restart the existing cue (no overlapping players). Rejected or unsupported media playback is ignored and never alters Chore creation, Completion persistence, or visual feedback. Browser / OS mute remains authoritative — no in-app sound preference. Reduced motion stays independent of audio.
+Playback is best effort via one client-only sound interface that preloads and reuses MP3 players per cue. Players warm once on the first trusted pointer or keyboard gesture (muted) so the first audible cue is not a cold start. Repeated triggers restart the existing cue (no overlapping players). Rejected or unsupported media playback is ignored and never alters Chore creation, Completion persistence, or visual feedback. Browser / OS mute remains authoritative — no in-app sound preference. Reduced motion stays independent of audio.
 
 Fallbacks: OS mute → no audible output (actions still succeed); no vibrate API / preference off → no haptic; reduced motion → visual-only instant state (audio unchanged).
 

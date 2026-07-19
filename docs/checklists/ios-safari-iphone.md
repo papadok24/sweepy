@@ -18,6 +18,19 @@ Manual gate for quirks Playwright WebKit cannot catch. Assumes a **normal Safari
 6. If a sync or hydrate notice appears, read it and dismiss without obscuring Today permanently.
 7. Empty Today / Quiet Sunday copy remains readable; recovery actions stay on-screen.
 
+## Audio latency (cold load)
+
+Do this on a **fresh Safari tab** after clearing website data for the Sweepy origin (or a private tab), so cues are not already cached.
+
+1. Open home and wait for the board to be ready — do not tap yet.
+2. Tap any non-check control first (brand / nav) — you should hear **no** muted warm-up leak.
+3. Immediately tap a Today completion — the complete cue should feel near-instant (no long first-tap hitch).
+4. Tap another completion within ~1.5s — soft (quieter) cue still feels immediate.
+5. Leave one Today chore open, complete it last — Full sweep cue starts with the overlay, still near-instant.
+6. With the phone on silent / Ring switch muted: actions still succeed; no surprise when unmuted later.
+7. Optional constrained network: first check after cold load should still start quickly once the small MP3 cues have fetched (tens of KB, not hundreds).
+8. If a hardware keyboard is available: Space on a focused Week checkbox plays the same complete cue after the first trusted key has warmed players.
+
 ## Landscape spot-check (must not break)
 
 1. Rotate briefly to landscape.

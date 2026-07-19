@@ -399,6 +399,7 @@ describe('full sweep cheer on Today', async () => {
         window.__soundProbe?.plays.push({
           src,
           volume: this.volume,
+          muted: this.muted,
         })
         return Promise.reject(new DOMException('NotAllowedError'))
       }

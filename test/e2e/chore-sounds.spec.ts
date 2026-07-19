@@ -5,13 +5,18 @@ import { setupE2e } from '../helpers/e2e-setup.ts'
 import {
   ADD_CHORE_SRC,
   COMPLETE_CHORE_SRC,
+  FULL_SWEEP_SRC,
   clearSoundPlays,
   constructedFor,
   createPageWithSoundProbe,
   installSoundProbe,
   openReadySoundPage,
+  pausesFor,
   playsFor,
   readSoundProbe,
+  resolveDeferredPlays,
+  setDeferredPlay,
+  warmPlaysFor,
 } from '../helpers/sound-probe.ts'
 import {
   assignChore,
@@ -263,6 +268,161 @@ describe('chore interaction sounds', async () => {
     const probe = await readSoundProbe(page)
     expect(constructedFor(probe.constructed, COMPLETE_CHORE_SRC)).toHaveLength(1)
     expect(constructedFor(probe.constructed, ADD_CHORE_SRC)).toHaveLength(1)
+    expect(constructedFor(probe.constructed, FULL_SWEEP_SRC)).toHaveLength(1)
+  })
+
+  it('warms every cue once on the first trusted pointer gesture', async () => {
+    const page = await createPageWithSoundProbe('/')
+    await page.waitForSelector('[data-week-ready="true"]')
+    await clearSoundPlays(page)
+
+    await page.locator('.brand-lockup').click()
+
+    await expect
+      .poll(async () => {
+        const plays = (await readSoundProbe(page)).plays
+        return (
+          warmPlaysFor(plays, ADD_CHORE_SRC).length
+          + warmPlaysFor(plays, COMPLETE_CHORE_SRC).length
+          + warmPlaysFor(plays, FULL_SWEEP_SRC).length
+        )
+      })
+      .toBe(3)
+
+    const probe = await readSoundProbe(page)
+    expect(warmPlaysFor(probe.plays, ADD_CHORE_SRC)).toHaveLength(1)
+    expect(warmPlaysFor(probe.plays, COMPLETE_CHORE_SRC)).toHaveLength(1)
+    expect(warmPlaysFor(probe.plays, FULL_SWEEP_SRC)).toHaveLength(1)
+    expect(playsFor(probe.plays, ADD_CHORE_SRC)).toHaveLength(0)
+    expect(playsFor(probe.plays, COMPLETE_CHORE_SRC)).toHaveLength(0)
+    expect(playsFor(probe.plays, FULL_SWEEP_SRC)).toHaveLength(0)
+
+    await clearSoundPlays(page)
+    await page.locator('.brand-lockup').click()
+    expect(warmPlaysFor((await readSoundProbe(page)).plays, COMPLETE_CHORE_SRC)).toHaveLength(0)
+  })
+
+  it('warms every cue once on the first trusted keyboard gesture', async () => {
+    const page = await createPageWithSoundProbe('/')
+    await page.waitForSelector('[data-week-ready="true"]')
+    await clearSoundPlays(page)
+
+    await page.locator('[data-add-chore-open]').focus()
+    await page.keyboard.press('Tab')
+
+    await expect
+      .poll(async () => warmPlaysFor((await readSoundProbe(page)).plays, COMPLETE_CHORE_SRC).length)
+      .toBe(1)
+
+    const probe = await readSoundProbe(page)
+    expect(warmPlaysFor(probe.plays, ADD_CHORE_SRC)).toHaveLength(1)
+    expect(warmPlaysFor(probe.plays, FULL_SWEEP_SRC)).toHaveLength(1)
+    expect(playsFor(probe.plays, COMPLETE_CHORE_SRC)).toHaveLength(0)
+  })
+
+  it('does not warm players for synthetic untrusted events', async () => {
+    const page = await createPageWithSoundProbe('/')
+    await page.waitForSelector('[data-week-ready="true"]')
+    await clearSoundPlays(page)
+
+    await page.evaluate(() => {
+      window.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
+      window.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'a' }))
+    })
+
+    expect(warmPlaysFor((await readSoundProbe(page)).plays, COMPLETE_CHORE_SRC)).toHaveLength(0)
+    expect(warmPlaysFor((await readSoundProbe(page)).plays, ADD_CHORE_SRC)).toHaveLength(0)
+  })
+
+  it('does not let deferred warm-up cleanup pause a real completion cue', async () => {
+    const unique = `Sound warm race ${Date.now()}`
+    const chore = await createChore(unique)
+    await assignChore(chore.id, 2)
+
+    const page = await createPageWithSoundProbe('/')
+    const box = `#week ${checkboxSelector(chore.id, 2)}`
+    await page.waitForSelector(box)
+    await clearSoundPlays(page)
+    await setDeferredPlay(page, true)
+
+    // First trusted gesture starts muted warm plays that stay pending.
+    await page.locator('.brand-lockup').click({ force: true })
+    await expect
+      .poll(async () => warmPlaysFor((await readSoundProbe(page)).plays, COMPLETE_CHORE_SRC).length)
+      .toBe(1)
+
+    await setDeferredPlay(page, false)
+    await page.locator(box).click()
+    await expect
+      .poll(async () => playsFor((await readSoundProbe(page)).plays, COMPLETE_CHORE_SRC).length)
+      .toBe(1)
+
+    const beforeResolve = await readSoundProbe(page)
+    const completePausesBefore = pausesFor(beforeResolve.pauses, COMPLETE_CHORE_SRC).length
+    const addPausesBefore = pausesFor(beforeResolve.pauses, ADD_CHORE_SRC).length
+    const sweepPausesBefore = pausesFor(beforeResolve.pauses, FULL_SWEEP_SRC).length
+
+    const resolved = await resolveDeferredPlays(page)
+    expect(resolved).toBeGreaterThanOrEqual(3)
+
+    await expect
+      .poll(async () => pausesFor((await readSoundProbe(page)).pauses, ADD_CHORE_SRC).length)
+      .toBeGreaterThan(addPausesBefore)
+    await expect
+      .poll(async () => pausesFor((await readSoundProbe(page)).pauses, FULL_SWEEP_SRC).length)
+      .toBeGreaterThan(sweepPausesBefore)
+
+    // Completion player generation advanced for the real cue — warm cleanup must skip it.
+    expect(pausesFor((await readSoundProbe(page)).pauses, COMPLETE_CHORE_SRC).length)
+      .toBe(completePausesBefore)
+    expect(await page.getAttribute(box, 'aria-checked')).toBe('true')
+  })
+
+  it('keeps chore actions working when warm-up playback is rejected', async () => {
+    const unique = `Sound warm reject ${Date.now()}`
+    const chore = await createChore(unique)
+    await assignChore(chore.id, 3)
+
+    const page = await createPageWithSoundProbe('/')
+    const box = `#week ${checkboxSelector(chore.id, 3)}`
+    await page.waitForSelector(box)
+    await clearSoundPlays(page)
+
+    await page.evaluate(() => {
+      HTMLMediaElement.prototype.play = function rejectedPlay() {
+        const src = this.currentSrc || this.getAttribute('src') || ''
+        window.__soundProbe?.plays.push({
+          src,
+          volume: this.volume,
+          muted: this.muted,
+        })
+        return Promise.reject(new DOMException('NotAllowedError'))
+      }
+    })
+
+    await page.locator('.brand-lockup').click()
+    await expect
+      .poll(async () => warmPlaysFor((await readSoundProbe(page)).plays, COMPLETE_CHORE_SRC).length)
+      .toBe(1)
+
+    await clearSoundPlays(page)
+    await page.locator(box).click()
+    expect(await page.getAttribute(box, 'aria-checked')).toBe('true')
+    await expect
+      .poll(async () => playsFor((await readSoundProbe(page)).plays, COMPLETE_CHORE_SRC).length)
+      .toBe(1)
+  })
+
+  it('serves compressed MP3 cue assets', async () => {
+    const page = await openReadySoundPage()
+    const origin = new URL(page.url()).origin
+    for (const path of [ADD_CHORE_SRC, COMPLETE_CHORE_SRC, FULL_SWEEP_SRC]) {
+      const response = await page.request.get(`${origin}${path}`)
+      expect(response.status()).toBe(200)
+      const contentType = response.headers()['content-type'] ?? ''
+      expect(contentType).toMatch(/audio\/mpeg|audio\/mp3/i)
+      expect((await response.body()).byteLength).toBeGreaterThan(1000)
+    }
   })
 
   it('keeps chore actions working when media playback is rejected', async () => {
@@ -281,6 +441,7 @@ describe('chore interaction sounds', async () => {
         window.__soundProbe?.plays.push({
           src,
           volume: this.volume,
+          muted: this.muted,
         })
         return Promise.reject(new DOMException('NotAllowedError'))
       }
