@@ -44,6 +44,10 @@ _Avoid_: User timezone (for week reset), per-device week key
 The record that a specific chore, on a specific day bucket, was done in a specific week. Any slot may be checked off at any point during its week (days are buckets, not deadlines). Completions are anonymous today (no household member attribution) and survive later changes to the schedule; a future login may add optional “done by” attribution without changing Week ownership. Unchecking a mistake removes the record.
 _Avoid_: Check-in, done log
 
+**Rain check**:
+The record that an active Chore is sitting out for one specific Week — hidden from the board for that Week only, without archiving the Chore or changing its Assignments. One rain check covers every Assignment for that Chore in that Week (not per day bucket). The next Week it shows up again unless another rain check is taken. Does not apply to archived Chores.
+_Avoid_: Skip, pause, snooze, hide, defer, mute, temporary archive, off-week (as automation)
+
 **Full sweep**:
 When every Assignment in today's Day bucket has a Completion for the current Week. Empty today (no Assignments) is not a Full sweep.
 _Avoid_: Day clear, day complete, all done, perfect day
