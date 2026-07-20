@@ -9,6 +9,7 @@ import {
   clearSoundPlays,
   constructedFor,
   createPageWithSoundProbe,
+  installRejectedPlayStub,
   installSoundProbe,
   openReadySoundPage,
   pausesFor,
@@ -387,18 +388,7 @@ describe('chore interaction sounds', async () => {
     const box = `#week ${checkboxSelector(chore.id, 3)}`
     await page.waitForSelector(box)
     await clearSoundPlays(page)
-
-    await page.evaluate(() => {
-      HTMLMediaElement.prototype.play = function rejectedPlay() {
-        const src = this.currentSrc || this.getAttribute('src') || ''
-        window.__soundProbe?.plays.push({
-          src,
-          volume: this.volume,
-          muted: this.muted,
-        })
-        return Promise.reject(new DOMException('NotAllowedError'))
-      }
-    })
+    await installRejectedPlayStub(page)
 
     await page.locator('.brand-lockup').click()
     await expect
@@ -434,18 +424,7 @@ describe('chore interaction sounds', async () => {
     const box = checkboxSelector(chore.id, 5)
     await page.waitForSelector(box)
     await installSoundProbe(page)
-
-    await page.evaluate(() => {
-      HTMLMediaElement.prototype.play = function rejectedPlay() {
-        const src = this.currentSrc || this.getAttribute('src') || ''
-        window.__soundProbe?.plays.push({
-          src,
-          volume: this.volume,
-          muted: this.muted,
-        })
-        return Promise.reject(new DOMException('NotAllowedError'))
-      }
-    })
+    await installRejectedPlayStub(page)
 
     await page.click(box)
     expect(await page.getAttribute(box, 'aria-checked')).toBe('true')

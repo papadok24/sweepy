@@ -6,6 +6,7 @@ import {
   COMPLETE_CHORE_SRC,
   FULL_SWEEP_SRC,
   clearSoundPlays,
+  installRejectedPlayStub,
   installSoundProbe,
   playsFor,
   readSoundProbe,
@@ -392,18 +393,7 @@ describe('full sweep cheer on Today', async () => {
     await page.waitForSelector(todayBox)
     await installSoundProbe(page)
     await clearSoundPlays(page)
-
-    await page.evaluate(() => {
-      HTMLMediaElement.prototype.play = function rejectedPlay() {
-        const src = this.currentSrc || this.getAttribute('src') || ''
-        window.__soundProbe?.plays.push({
-          src,
-          volume: this.volume,
-          muted: this.muted,
-        })
-        return Promise.reject(new DOMException('NotAllowedError'))
-      }
-    })
+    await installRejectedPlayStub(page)
 
     await page.locator(todayBox).click()
     expect(await page.getAttribute(todayBox, 'aria-checked')).toBe('true')

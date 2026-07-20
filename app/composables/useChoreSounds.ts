@@ -16,7 +16,8 @@ import {
 
 type CuePlayer = {
   audio: HTMLAudioElement
-  generation: number
+  /** Bumped on real cue play so stale warm-up cleanup cannot interrupt it. */
+  playToken: number
 }
 
 function createPlayer(src: string): CuePlayer {
@@ -24,14 +25,27 @@ function createPlayer(src: string): CuePlayer {
   audio.preload = 'auto'
   audio.src = src
   audio.load()
-  return { audio, generation: 0 }
+  return { audio, playToken: 0 }
+}
+
+function resetAfterWarm(player: CuePlayer, playToken: number): void {
+  if (player.playToken !== playToken) return
+  try {
+    player.audio.pause()
+    player.audio.currentTime = 0
+    player.audio.muted = false
+    player.audio.volume = FULL_VOLUME
+  }
+  catch {
+    // Ignore cleanup failures after warm-up.
+  }
 }
 
 function playCue(player: CuePlayer | null, volume: number): void {
   if (!player) return
   const { audio } = player
   try {
-    player.generation += 1
+    player.playToken += 1
     audio.muted = false
     audio.pause()
     audio.currentTime = 0
@@ -47,40 +61,17 @@ function playCue(player: CuePlayer | null, volume: number): void {
 
 function warmPlayer(player: CuePlayer): void {
   const { audio } = player
-  const generation = player.generation
+  const playToken = player.playToken
   try {
     audio.muted = true
     audio.volume = 0
     audio.currentTime = 0
     void audio.play()
-      .then(() => {
-        if (player.generation !== generation) return
-        audio.pause()
-        audio.currentTime = 0
-        audio.muted = false
-        audio.volume = FULL_VOLUME
-      })
-      .catch(() => {
-        if (player.generation !== generation) return
-        try {
-          audio.pause()
-          audio.currentTime = 0
-          audio.muted = false
-          audio.volume = FULL_VOLUME
-        }
-        catch {
-          // Ignore cleanup failures after a rejected warm-up.
-        }
-      })
+      .then(() => resetAfterWarm(player, playToken))
+      .catch(() => resetAfterWarm(player, playToken))
   }
   catch {
-    try {
-      audio.muted = false
-      audio.volume = FULL_VOLUME
-    }
-    catch {
-      // Ignore reset failures when warm-up throws synchronously.
-    }
+    resetAfterWarm(player, playToken)
   }
 }
 
@@ -101,9 +92,9 @@ export function useChoreSounds() {
     if (warmed) return
     warmed = true
     ensurePlayers()
-    if (addPlayer) warmPlayer(addPlayer)
-    if (completePlayer) warmPlayer(completePlayer)
-    if (fullSweepPlayer) warmPlayer(fullSweepPlayer)
+    for (const player of [addPlayer, completePlayer, fullSweepPlayer]) {
+      if (player) warmPlayer(player)
+    }
   }
 
   function onTrustedGesture(event: Event) {

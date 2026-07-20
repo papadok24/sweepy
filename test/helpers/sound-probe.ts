@@ -119,6 +119,24 @@ export async function installSoundProbe(page: Page): Promise<void> {
   await page.evaluate(SOUND_PROBE_INIT)
 }
 
+/**
+ * Replace `HTMLMediaElement.play` with a rejecting stub that still records
+ * muted/unmuted attempts on the sound probe (warm-up + cue paths).
+ */
+export async function installRejectedPlayStub(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    HTMLMediaElement.prototype.play = function rejectedPlay() {
+      const src = this.currentSrc || this.getAttribute('src') || ''
+      window.__soundProbe?.plays.push({
+        src,
+        volume: this.volume,
+        muted: this.muted,
+      })
+      return Promise.reject(new DOMException('NotAllowedError'))
+    }
+  })
+}
+
 /** Open a page with the sound probe installed before any app scripts run. */
 export async function createPageWithSoundProbe(path = '/'): Promise<Page> {
   const page = await createPage()
