@@ -49,7 +49,7 @@ The record that an active Chore is sitting out for one specific Week — still o
 _Avoid_: Skip, pause, snooze, hide, defer, mute, temporary archive, off-week (as automation)
 
 **Full sweep**:
-When every Assignment in today's Day bucket has a Completion for the current Week. Empty today (no Assignments) is not a Full sweep.
+When every checkable Assignment in today's Day bucket has a Completion for the current Week. Rain-checked slots are excluded from the denominator — they need no Completion and do not block the cheer. Empty today (no Assignments, or every today Assignment rain-checked) is not a Full sweep.
 _Avoid_: Day clear, day complete, all done, perfect day
 
 **Sweeps**:
