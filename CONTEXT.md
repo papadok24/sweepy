@@ -45,7 +45,7 @@ The record that a specific chore, on a specific day bucket, was done in a specif
 _Avoid_: Check-in, done log
 
 **Rain check**:
-The record that an active Chore is sitting out for one specific Week — hidden from the board for that Week only, without archiving the Chore or changing its Assignments. One rain check covers every Assignment for that Chore in that Week (not per day bucket). The next Week it shows up again unless another rain check is taken. Does not apply to archived Chores.
+The record that an active Chore is sitting out for one specific Week — still on the board for that Week, but muted and not checkable (no Completion), without archiving the Chore or changing its Assignments. One rain check covers every Assignment for that Chore in that Week (not per day bucket); each of those day buckets shows the muted row. The next Week it shows up as a normal Chore again unless another rain check is taken. Does not apply to archived Chores.
 _Avoid_: Skip, pause, snooze, hide, defer, mute, temporary archive, off-week (as automation)
 
 **Full sweep**:
