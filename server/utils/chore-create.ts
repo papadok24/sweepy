@@ -16,18 +16,23 @@ export type ChoreInsertValues = {
  * prepared statement. Passing parameterized `db.run(sql)` directly to
  * `db.batch()` instead triggers drizzle-orm#2277 (`undefined.bind`).
  *
+ * Use `VALUES` for the day list — not `SELECT … UNION ALL`. Workerd caps
+ * compound SELECTs at 5 terms (`SQLITE_LIMIT_COMPOUND_SELECT`), so assigning
+ * a chore to 6–7 days would fail in production D1. `VALUES` is exempt from
+ * that limit (see docs/research/d1-compound-select-limit.md).
+ *
  * `days` must be non-empty — callers gate the no-days path separately.
  */
 export function buildAssignmentSelect(days: readonly DayOfWeek[]): SQL {
-  const daysSource = sql.join(
-    days.map(day => sql`select ${day} as day_of_week`),
-    sql` union all `,
+  const dayRows = sql.join(
+    days.map(day => sql`(${day})`),
+    sql`, `,
   )
 
   return sql`
-    select null as id, chore_id, day_of_week
+    select null as id, chore_id, days.column1 as day_of_week
     from (select last_insert_rowid() as chore_id)
-    cross join (${daysSource})
+    cross join (values ${dayRows}) as days
   `
 }
 

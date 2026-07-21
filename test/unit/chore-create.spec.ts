@@ -1,7 +1,10 @@
 import { drizzle } from 'drizzle-orm/d1'
 import { describe, expect, it, vi } from 'vitest'
 import * as schema from '../../server/db/schema'
-import { choreWithDaysBatchQueries } from '../../server/utils/chore-create'
+import {
+  buildAssignmentSelect,
+  choreWithDaysBatchQueries,
+} from '../../server/utils/chore-create'
 import type { DayOfWeek } from '../../server/utils/chore-schemas'
 
 describe('chore creation queries', () => {
@@ -45,5 +48,17 @@ describe('chore creation queries', () => {
     )).resolves.toBeDefined()
 
     expect(batch).toHaveBeenCalledOnce()
+  })
+
+  it('uses VALUES for seven days without UNION ALL (D1 compound-select cap)', () => {
+    const days: DayOfWeek[] = [0, 1, 2, 3, 4, 5, 6]
+    const { sql: query, params } = drizzle({} as never, { schema })
+      .insert(schema.choreAssignments)
+      .select(buildAssignmentSelect(days))
+      .toSQL()
+
+    expect(query).toMatch(/values/i)
+    expect(query).not.toMatch(/union all/i)
+    expect(params).toEqual(days)
   })
 })
