@@ -1,5 +1,5 @@
 import { $fetch } from '@nuxt/test-utils/e2e'
-import type { Completion } from '../../server/db/schema.ts'
+import type { ChoreWeekSkip, Completion } from '../../server/db/schema.ts'
 
 /**
  * Test fixtures that need DB access go through Vitest-only Nitro routes on the
@@ -23,6 +23,21 @@ export async function insertCompletion(input: {
   })
 }
 
+/**
+ * Insert a rain-check row with an explicit weekStart — product POST always
+ * stamps the current week.
+ */
+export async function insertRainCheck(input: {
+  choreId: number
+  weekStart: string
+  skippedAt?: number
+}): Promise<ChoreWeekSkip> {
+  return await $fetch<ChoreWeekSkip>('/api/__test__/rain-checks', {
+    method: 'POST',
+    body: input,
+  })
+}
+
 /** Upsert the singleton household settings timezone (ADR 0008). */
 export async function upsertHouseholdTimezone(timezone: string): Promise<void> {
   await $fetch('/api/__test__/household-timezone', {
@@ -34,6 +49,14 @@ export async function upsertHouseholdTimezone(timezone: string): Promise<void> {
 /** Count completion rows for a chore — used to assert archive keeps history. */
 export async function countCompletionsForChore(choreId: number): Promise<number> {
   const result = await $fetch<{ count: number }>('/api/__test__/completions', {
+    query: { choreId },
+  })
+  return result.count
+}
+
+/** Count rain-check rows for a chore — used to assert archive cleans orphans. */
+export async function countRainChecksForChore(choreId: number): Promise<number> {
+  const result = await $fetch<{ count: number }>('/api/__test__/rain-checks', {
     query: { choreId },
   })
   return result.count

@@ -7,6 +7,8 @@ export type WeekDayEntry = {
   choreListItems: string[]
   completed: boolean
   completedAt: number | null
+  /** True when this Chore has a Rain check for the Week (chore-wide across day buckets). */
+  rainChecked: boolean
 }
 
 export type WeekDay = {

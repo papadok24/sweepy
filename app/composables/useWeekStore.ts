@@ -5,7 +5,8 @@ export type { WeekDayEntry, WeekDay, WeekView } from '#shared/types/week'
 /**
  * Local-first this-week store (ADR-0006).
  * Hydrate once from GET /api/week; optimistic completion toggles and Edit Save;
- * failed writes rehydrate and set a subtle sync notice. Archive awaits then refreshes.
+ * failed writes rehydrate and set a subtle sync notice. Archive and Rain check
+ * await then refresh.
  *
  * SSR notes (see ADR-0006 “Hydration” + ADR 0008):
  * - `week` is the `useAsyncData` payload itself (no mirrored useState).
@@ -91,6 +92,7 @@ export function useWeekStore() {
       .find(d => d.dayOfWeek === dayOfWeek)
       ?.assignments.find(a => a.choreId === choreId)
     if (!entry) return
+    if (entry.rainChecked) return
 
     const next = !entry.completed
     setCompleted(choreId, dayOfWeek, next)
@@ -139,6 +141,10 @@ export function useWeekStore() {
       .flatMap(d => d.assignments)
       .find(a => a.choreId === input.choreId)
       ?.choreListItems ?? []
+    const rainChecked = snapshot.days
+      .flatMap(d => d.assignments)
+      .find(a => a.choreId === input.choreId)
+      ?.rainChecked ?? false
 
     for (const day of snapshot.days) {
       const existing = day.assignments.find(a => a.choreId === input.choreId)
@@ -155,6 +161,7 @@ export function useWeekStore() {
             choreListItems: [...existingListItems],
             completed: false,
             completedAt: null,
+            rainChecked,
           })
         }
       }
@@ -266,6 +273,18 @@ export function useWeekStore() {
     await rehydrateFromServer()
   }
 
+  /** Await-and-refresh Rain check take (Edit-drawer lifecycle). */
+  async function takeRainCheck(choreId: number) {
+    await $fetch(`/api/chores/${choreId}/rain-check`, { method: 'POST' })
+    await rehydrateFromServer()
+  }
+
+  /** Await-and-refresh Rain check clear (Edit-drawer lifecycle). */
+  async function clearRainCheck(choreId: number) {
+    await $fetch(`/api/chores/${choreId}/rain-check`, { method: 'DELETE' })
+    await rehydrateFromServer()
+  }
+
   async function retryHydrate() {
     hydrateError.value = null
     try {
@@ -296,6 +315,8 @@ export function useWeekStore() {
     addChoreListItem,
     removeChoreListItem,
     archiveChore,
+    takeRainCheck,
+    clearRainCheck,
     retryHydrate,
     refreshWeek,
     dismissSyncNotice,

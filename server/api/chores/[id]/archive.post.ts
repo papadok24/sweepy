@@ -8,6 +8,7 @@ export default eventHandler(async (event): Promise<Chore> => {
   await requireChore(id)
 
   // Soft-deactivate only — completions are never touched (ADR 0003).
+  // Rain-check rows for this Chore are cleaned up (orphan sit-outs).
   const [archived] = await db
     .update(schema.chores)
     .set({ active: false })
@@ -17,6 +18,11 @@ export default eventHandler(async (event): Promise<Chore> => {
   if (!archived) {
     throw createError({ statusCode: 500, statusMessage: 'Failed to archive chore' })
   }
+
+  await db
+    .delete(schema.choreWeekSkips)
+    .where(eq(schema.choreWeekSkips.choreId, id))
+    .returning()
 
   return archived
 })
