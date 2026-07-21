@@ -16,6 +16,8 @@ const {
   addChoreListItem,
   removeChoreListItem,
   archiveChore,
+  takeRainCheck,
+  clearRainCheck,
   retryHydrate,
   refreshWeek,
   dismissSyncNotice,
@@ -134,6 +136,8 @@ const editDays = ref<number[]>([])
 const editListItems = ref<string[]>([])
 const editError = ref<string | null>(null)
 const editArchiving = ref(false)
+const editRainChecking = ref(false)
+const editRainChecked = ref(false)
 /** Peer Details | List surfaces; archive is a separate confirm step. */
 const editStep = ref<'details' | 'list' | 'archive'>('details')
 
@@ -145,6 +149,8 @@ function resetEditForm() {
   editListItems.value = []
   editError.value = null
   editArchiving.value = false
+  editRainChecking.value = false
+  editRainChecked.value = false
   editStep.value = 'details'
 }
 
@@ -167,6 +173,8 @@ function hydrateEditFromWeek(choreId: number) {
   editListItems.value = [...first.choreListItems]
   editError.value = null
   editArchiving.value = false
+  editRainChecking.value = false
+  editRainChecked.value = first.rainChecked
   editStep.value = 'details'
   return true
 }
@@ -266,6 +274,32 @@ async function confirmArchive() {
   }
 }
 
+async function flipRainCheck() {
+  const choreId = editChoreId.value
+  if (choreId == null) return
+
+  editError.value = null
+  editRainChecking.value = true
+  try {
+    if (editRainChecked.value) {
+      await clearRainCheck(choreId)
+      editRainChecked.value = false
+    }
+    else {
+      await takeRainCheck(choreId)
+      editRainChecked.value = true
+    }
+  }
+  catch {
+    editError.value = editRainChecked.value
+      ? 'Couldn’t clear that rain check. Try again.'
+      : 'Couldn’t take that rain check. Try again.'
+  }
+  finally {
+    editRainChecking.value = false
+  }
+}
+
 /**
  * One-shot celebration state (design.md "Delight with kindness"):
  * full sparkle on a completion after a quiet gap, soft sparkle on rapid
@@ -307,21 +341,29 @@ function completionKey(choreId: number, dayOfWeek: number) {
 }
 
 function ariaLabelFor(entry: WeekDayEntry) {
+  if (entry.rainChecked) {
+    return `${entry.choreName}, rain check this week`
+  }
   return entry.completed
     ? `${entry.choreName}, completed`
     : `${entry.choreName}, not completed`
 }
 
-/** True when every today Assignment currently has a Completion. */
+/** Checkable today slots only — rain-checked rows are excluded from Full sweep. */
+function checkableTodaySlots(): WeekDayEntry[] {
+  return todayAssignments.value.filter(slot => !slot.rainChecked)
+}
+
+/** True when every checkable today Assignment currently has a Completion. */
 function isTodayFullSweep(): boolean {
-  const slots = todayAssignments.value
+  const slots = checkableTodaySlots()
   return slots.length > 0 && slots.every(slot => slot.completed)
 }
 
-/** True when completing this today slot leaves every today Assignment done. */
+/** True when completing this today slot leaves every checkable today Assignment done. */
 function isFullSweepTransition(choreId: number, dayOfWeek: number): boolean {
   if (dayOfWeek !== todayIndex.value) return false
-  const slots = todayAssignments.value
+  const slots = checkableTodaySlots()
   if (slots.length === 0) return false
   return slots.every(slot =>
     slot.choreId === choreId ? true : slot.completed,
@@ -373,6 +415,7 @@ function onToggle(
   surface: CelebrateSurface,
 ) {
   if (!canToggle.value) return
+  if (entry.rainChecked) return
   const willComplete = !entry.completed
   toggleCompletion(choreId, dayOfWeek)
 
@@ -498,8 +541,11 @@ function onToggle(
             v-for="entry in todayAssignments"
             :key="entry.choreId"
             class="chore-slot surface"
+            :class="{ 'chore-slot--rain-check': entry.rainChecked }"
+            :data-rain-check="entry.rainChecked ? 'true' : undefined"
           >
             <button
+              v-if="!entry.rainChecked"
               type="button"
               class="completion control"
               :class="celebrationClass(entry.choreId, todayIndex!, entry)"
@@ -513,6 +559,11 @@ function onToggle(
             >
               <span class="completion__mark" aria-hidden="true" />
             </button>
+            <span
+              v-else
+              class="chore-slot__rain-spacer"
+              aria-hidden="true"
+            />
             <button
               type="button"
               class="chore-slot__name"
@@ -522,6 +573,13 @@ function onToggle(
             >
               {{ entry.choreName }}
             </button>
+            <span
+              v-if="entry.rainChecked"
+              class="chore-slot__rain-cue"
+              data-rain-check-cue
+            >
+              Rain check this week
+            </span>
             <button
               v-if="entry.choreListItems.length > 0"
               type="button"
@@ -752,7 +810,7 @@ function onToggle(
               name="name"
               type="text"
               autocomplete="off"
-              :disabled="editArchiving"
+              :disabled="editArchiving || editRainChecking"
             >
 
             <label class="add-chore-drawer__label" for="edit-chore-notes">Notes (optional)</label>
@@ -765,7 +823,7 @@ function onToggle(
               rows="3"
               autocomplete="off"
               placeholder="Add notes"
-              :disabled="editArchiving"
+              :disabled="editArchiving || editRainChecking"
             />
 
             <p class="add-chore-drawer__label" id="edit-chore-days-label">Days</p>
@@ -782,7 +840,7 @@ function onToggle(
                 :class="{ 'add-chore-day--selected': isEditDaySelected(day) }"
                 :data-edit-chore-day="day"
                 :aria-pressed="isEditDaySelected(day)"
-                :disabled="editArchiving"
+                :disabled="editArchiving || editRainChecking"
                 @click="toggleEditDay(day)"
               >
                 {{ label }}
@@ -802,7 +860,7 @@ function onToggle(
               type="submit"
               class="btn control btn--primary"
               data-edit-chore-submit
-              :disabled="editArchiving"
+              :disabled="editArchiving || editRainChecking"
             >
               Save
             </button>
@@ -810,8 +868,19 @@ function onToggle(
             <button
               type="button"
               class="btn control btn--secondary"
+              data-edit-chore-rain-check
+              :disabled="editArchiving || editRainChecking"
+              :aria-busy="editRainChecking"
+              @click="flipRainCheck"
+            >
+              {{ editRainChecked ? 'Clear rain check' : 'Rain check this week' }}
+            </button>
+
+            <button
+              type="button"
+              class="btn control btn--secondary"
               data-edit-chore-archive
-              :disabled="editArchiving"
+              :disabled="editArchiving || editRainChecking"
               @click="openArchiveStep"
             >
               Archive chore
@@ -953,8 +1022,11 @@ function onToggle(
               v-for="entry in day.assignments"
               :key="`${day.dayOfWeek}-${entry.choreId}`"
               class="chore-slot surface"
+              :class="{ 'chore-slot--rain-check': entry.rainChecked }"
+              :data-rain-check="entry.rainChecked ? 'true' : undefined"
             >
               <button
+                v-if="!entry.rainChecked"
                 type="button"
                 class="completion control"
                 :class="celebrationClass(entry.choreId, day.dayOfWeek, entry)"
@@ -968,6 +1040,11 @@ function onToggle(
               >
                 <span class="completion__mark" aria-hidden="true" />
               </button>
+              <span
+                v-else
+                class="chore-slot__rain-spacer"
+                aria-hidden="true"
+              />
               <button
                 type="button"
                 class="chore-slot__name"
@@ -977,6 +1054,13 @@ function onToggle(
               >
                 {{ entry.choreName }}
               </button>
+              <span
+                v-if="entry.rainChecked"
+                class="chore-slot__rain-cue"
+                data-rain-check-cue
+              >
+                Rain check this week
+              </span>
             </li>
           </ul>
         </article>

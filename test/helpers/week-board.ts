@@ -15,6 +15,18 @@ export async function assignChore(choreId: number, dayOfWeek: number) {
   })
 }
 
+export async function takeRainCheck(choreId: number) {
+  return await $fetch(`/api/chores/${choreId}/rain-check`, {
+    method: 'POST',
+  })
+}
+
+export async function clearRainCheck(choreId: number) {
+  return await $fetch(`/api/chores/${choreId}/rain-check`, {
+    method: 'DELETE',
+  })
+}
+
 export function findAssignmentByName(
   week: WeekView,
   choreName: string,

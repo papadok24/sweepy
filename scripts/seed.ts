@@ -3,6 +3,7 @@ import { createClient } from '@libsql/client'
 import { drizzle } from 'drizzle-orm/libsql'
 import {
   choreAssignments,
+  choreWeekSkips,
   chores,
   completions,
   householdSettings,
@@ -59,8 +60,9 @@ export async function seedPlaceholders(options?: { url?: string }) {
   const db = drizzle(client)
 
   try {
-    // Children first — FKs from assignments/completions → chores
+    // Children first — FKs from assignments/completions/rain checks → chores
     await db.delete(completions)
+    await db.delete(choreWeekSkips)
     await db.delete(choreAssignments)
     await db.delete(chores)
     await db.delete(placeholders)

@@ -367,6 +367,31 @@
     hyphens: auto;
   }
 
+  .chore-slot--rain-check {
+    opacity: 0.62;
+  }
+
+  .chore-slot--rain-check .chore-slot__name {
+    color: var(--color-text-muted);
+    font-weight: 600;
+  }
+
+  .chore-slot__rain-spacer {
+    width: var(--target-min);
+    height: var(--target-min);
+    flex-shrink: 0;
+  }
+
+  .chore-slot__rain-cue {
+    flex-shrink: 0;
+    max-width: 8rem;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: right;
+  }
+
   .chore-slot__list-cue {
     display: inline-flex;
     align-items: center;

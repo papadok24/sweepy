@@ -6,8 +6,10 @@ import type { Assignment, Chore, Completion, WeekView } from '../helpers/api-typ
 import { setupE2e, TEST_HOUSEHOLD_TIMEZONE } from '../helpers/e2e-setup.ts'
 import {
   countCompletionsForChore,
+  countRainChecksForChore,
   insertCompletion,
   insertPlaceholders,
+  insertRainCheck,
   previousWeekStart,
   upsertHouseholdTimezone,
 } from '../helpers/fixtures.ts'
@@ -557,6 +559,123 @@ describe('API server', async () => {
 
       const week = await $fetch<WeekView>('/api/week')
       expect(findAssignment(week, chore.id, 0)?.completed).toBe(false)
+    })
+
+    it('annotates rain-checked Assignments on the Week without omitting them', async () => {
+      const chore = await createChore('Rain check annotate')
+      await assign(chore.id, 0)
+      await assign(chore.id, 3)
+
+      const taken = await $fetch<{ choreId: number, weekStart: string }>(
+        `/api/chores/${chore.id}/rain-check`,
+        { method: 'POST' },
+      )
+      const expectedWeek = weekClockAt(new Date(), TEST_HOUSEHOLD_TIMEZONE).weekStart
+      expect(taken.weekStart).toBe(expectedWeek)
+      expect(taken.choreId).toBe(chore.id)
+
+      const week = await $fetch<WeekView>('/api/week')
+      expect(findAssignment(week, chore.id, 0)).toEqual(
+        expect.objectContaining({
+          choreId: chore.id,
+          rainChecked: true,
+          completed: false,
+        }),
+      )
+      expect(findAssignment(week, chore.id, 3)?.rainChecked).toBe(true)
+      expect(findAssignment(week, chore.id, 1)).toBeUndefined()
+    })
+
+    it('takes and clears rain check idempotently for the current Week', async () => {
+      const chore = await createChore('Rain check flip')
+      await assign(chore.id, 1)
+
+      const first = await $fetch<{ id: number }>(
+        `/api/chores/${chore.id}/rain-check`,
+        { method: 'POST' },
+      )
+      const second = await $fetch<{ id: number }>(
+        `/api/chores/${chore.id}/rain-check`,
+        { method: 'POST' },
+      )
+      expect(second.id).toBe(first.id)
+
+      await $fetch(`/api/chores/${chore.id}/rain-check`, { method: 'DELETE' })
+      await $fetch(`/api/chores/${chore.id}/rain-check`, { method: 'DELETE' })
+
+      const week = await $fetch<WeekView>('/api/week')
+      expect(findAssignment(week, chore.id, 1)?.rainChecked).toBe(false)
+    })
+
+    it('rejects Completions while rain-checked and keeps prior Completions after clear', async () => {
+      const chore = await createChore('Rain check complete guard')
+      await assign(chore.id, 2)
+      await assign(chore.id, 3)
+
+      await $fetch('/api/completions', {
+        method: 'POST',
+        body: { choreId: chore.id, dayOfWeek: 2 },
+      })
+
+      await $fetch(`/api/chores/${chore.id}/rain-check`, { method: 'POST' })
+
+      let week = await $fetch<WeekView>('/api/week')
+      expect(findAssignment(week, chore.id, 2)).toEqual(
+        expect.objectContaining({ rainChecked: true, completed: true }),
+      )
+      expect(findAssignment(week, chore.id, 3)?.rainChecked).toBe(true)
+
+      await expect(
+        $fetch('/api/completions', {
+          method: 'POST',
+          body: { choreId: chore.id, dayOfWeek: 3 },
+        }),
+      ).rejects.toMatchObject({ statusCode: 409 })
+
+      await $fetch(`/api/chores/${chore.id}/rain-check`, { method: 'DELETE' })
+
+      week = await $fetch<WeekView>('/api/week')
+      expect(findAssignment(week, chore.id, 2)).toEqual(
+        expect.objectContaining({ rainChecked: false, completed: true }),
+      )
+      expect(findAssignment(week, chore.id, 3)?.rainChecked).toBe(false)
+      expect(await countCompletionsForChore(chore.id)).toBe(1)
+
+      const again = await $fetch<Completion>('/api/completions', {
+        method: 'POST',
+        body: { choreId: chore.id, dayOfWeek: 3 },
+      })
+      expect(again.choreId).toBe(chore.id)
+    })
+
+    it('rejects rain check on archived Chores and cleans rain checks on archive', async () => {
+      const chore = await createChore('Rain check archive')
+      await assign(chore.id, 4)
+
+      await $fetch(`/api/chores/${chore.id}/rain-check`, { method: 'POST' })
+      expect(await countRainChecksForChore(chore.id)).toBe(1)
+
+      await $fetch(`/api/chores/${chore.id}/archive`, { method: 'POST' })
+      expect(await countRainChecksForChore(chore.id)).toBe(0)
+
+      await expect(
+        $fetch(`/api/chores/${chore.id}/rain-check`, { method: 'POST' }),
+      ).rejects.toMatchObject({ statusCode: 404 })
+    })
+
+    it('does not annotate from a prior-week rain check', async () => {
+      const chore = await createChore('Rain check prior week')
+      await assign(chore.id, 5)
+
+      await insertRainCheck({
+        choreId: chore.id,
+        weekStart: previousWeekStart(
+          weekClockAt(new Date(), TEST_HOUSEHOLD_TIMEZONE).weekStart,
+        ),
+      })
+
+      const week = await $fetch<WeekView>('/api/week')
+      expect(findAssignment(week, chore.id, 5)?.rainChecked).toBe(false)
     })
   })
 

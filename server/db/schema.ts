@@ -58,6 +58,22 @@ export const completions = sqliteTable('completions', {
 export type Completion = typeof completions.$inferSelect
 
 /**
+ * Rain check: active Chore sitting out for one Week (chore-wide, not per day).
+ * weekStart is the ISO date (YYYY-MM-DD) of that week's Monday — same clock as Completions.
+ * Product language is Rain check; physical table is chore_week_skips.
+ */
+export const choreWeekSkips = sqliteTable('chore_week_skips', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  choreId: integer('chore_id').notNull().references(() => chores.id),
+  weekStart: text('week_start').notNull(),
+  skippedAt: integer('skipped_at').notNull().$defaultFn(() => Date.now()),
+}, table => [
+  uniqueIndex('chore_week_skips_chore_week_unique').on(table.choreId, table.weekStart),
+])
+
+export type ChoreWeekSkip = typeof choreWeekSkips.$inferSelect
+
+/**
  * Singleton household preferences (ADR 0008). One row (`id = 1`) for the
  * shared board — starts with IANA timezone for Week boundaries / “today”.
  */

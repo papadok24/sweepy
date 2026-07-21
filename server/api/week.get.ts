@@ -26,9 +26,15 @@ export default eventHandler(async (event): Promise<WeekView> => {
     .from(schema.completions)
     .where(eq(schema.completions.weekStart, weekStart))
 
+  const weekRainChecks = await db
+    .select({ choreId: schema.choreWeekSkips.choreId })
+    .from(schema.choreWeekSkips)
+    .where(eq(schema.choreWeekSkips.weekStart, weekStart))
+
   const completionByKey = new Map(
     weekCompletions.map(c => [`${c.choreId}:${c.dayOfWeek}`, c] as const),
   )
+  const rainCheckedChoreIds = new Set(weekRainChecks.map(s => s.choreId))
 
   const days: WeekDay[] = Array.from({ length: 7 }, (_, dayOfWeek) => ({
     dayOfWeek,
@@ -44,6 +50,7 @@ export default eventHandler(async (event): Promise<WeekView> => {
       choreListItems: parseListItems(row.choreListItems),
       completed: Boolean(completion),
       completedAt: completion?.completedAt ?? null,
+      rainChecked: rainCheckedChoreIds.has(row.choreId),
     })
   }
 

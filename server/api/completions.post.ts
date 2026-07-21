@@ -30,6 +30,22 @@ export default eventHandler(async (event): Promise<Completion> => {
     })
   }
 
+  const rainCheck = await db
+    .select({ id: schema.choreWeekSkips.id })
+    .from(schema.choreWeekSkips)
+    .where(and(
+      eq(schema.choreWeekSkips.choreId, body.choreId),
+      eq(schema.choreWeekSkips.weekStart, weekStart),
+    ))
+    .get()
+
+  if (rainCheck) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'Chore has a rain check for this week',
+    })
+  }
+
   return await withUniqueConflict(async () => {
     const [completion] = await db.insert(schema.completions).values({
       choreId: body.choreId,
